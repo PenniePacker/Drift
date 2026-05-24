@@ -19,6 +19,11 @@ struct SettingsView: View {
     @State private var healthKitStatus: HKAuthorizationStatus = .notDetermined
     @State private var showDeleteConfirm = false
     @State private var showContributionConfirm = false
+    #if DEBUG
+    @State private var debugTapCount = 0
+    @State private var debugMenuVisible = false
+    @State private var showSampleDataConfirm = false
+    #endif
 
     @Environment(\.modelContext) private var context
 
@@ -92,6 +97,18 @@ struct SettingsView: View {
                 // MARK: About
                 Section("About") {
                     LabeledContent("Version", value: Bundle.main.shortVersionString)
+                    #if DEBUG
+                        .onTapGesture {
+                            debugTapCount += 1
+                            if debugTapCount >= 5 {
+                                debugMenuVisible = true
+                                debugTapCount = 0
+                                #if os(iOS)
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                #endif
+                            }
+                        }
+                    #endif
                     LabeledContent("Drift score formula", value: "sessions × (30 ÷ avg onset)")
                     LabeledContent("Sessions to unlock artist", value: "3 confirmed")
 
@@ -100,6 +117,30 @@ struct SettingsView: View {
                     Link("Support", destination: URL(string: "https://yourdomain.com/support")!)
                         .foregroundStyle(.indigo)
                 }
+
+                // MARK: Debug (hidden — 5-tap on version row to reveal)
+                #if DEBUG
+                if debugMenuVisible {
+                    Section {
+                        Button {
+                            showSampleDataConfirm = true
+                        } label: {
+                            Label("Load sample data", systemImage: "sparkles")
+                        }
+                        .foregroundStyle(.indigo)
+
+                        Button(role: .destructive) {
+                            deleteAllData()
+                        } label: {
+                            Label("Clear all data", systemImage: "xmark.circle")
+                        }
+                    } header: {
+                        Text("Debug")
+                    } footer: {
+                        Text("Inserts 26 realistic sessions across 5 artists. Only available in debug builds.")
+                    }
+                }
+                #endif
 
                 // MARK: Data management
                 Section {
@@ -129,6 +170,20 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently remove all sleep sessions, artist stats, and track history from this device.")
             }
+            #if DEBUG
+            .confirmationDialog(
+                "Load sample data?",
+                isPresented: $showSampleDataConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Load 26 sessions") {
+                    SampleDataLoader.load(into: context)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will replace all existing data with realistic fake sessions for 5 artists.")
+            }
+            #endif
             .alert("Opt out of world rankings?", isPresented: $showContributionConfirm) {
                 Button("Opt out", role: .destructive) { leaderboardOptedIn = false }
                 Button("Keep contributing", role: .cancel) { leaderboardOptedIn = true }
