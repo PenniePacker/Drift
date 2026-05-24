@@ -115,7 +115,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .task { checkHealthKitStatus() }
             .confirmationDialog(
                 "Delete all data?",

@@ -75,7 +75,9 @@ struct ArtistStatsView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("Sleep artists")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
         }
     }
 }
@@ -128,7 +130,11 @@ struct GlobalBestSleeperBanner: View {
             Button {
                 isPlaying.toggle()
                 if let uri = track.deepLinkURI, let url = URL(string: uri) {
+                    #if os(iOS)
                     UIApplication.shared.open(url)
+                    #else
+                    NSWorkspace.shared.open(url)
+                    #endif
                 }
             } label: {
                 Label(
@@ -145,10 +151,10 @@ struct GlobalBestSleeperBanner: View {
         }
         .padding()
         .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
+        .overlay {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.green.opacity(0.2), lineWidth: 0.5)
-        )
+        }
     }
 }
 
@@ -350,7 +356,9 @@ struct ArtistDrillDownView: View {
             .padding(.bottom, 32)
         }
         .navigationTitle(artist.artistName)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
+        #endif
     }
 }
 
@@ -378,7 +386,11 @@ struct ArtistBestSleeperCard: View {
             Button {
                 isPlaying.toggle()
                 if let uri = track.deepLinkURI, let url = URL(string: uri) {
+                    #if os(iOS)
                     UIApplication.shared.open(url)
+                    #else
+                    NSWorkspace.shared.open(url)
+                    #endif
                 }
             } label: {
                 Label(

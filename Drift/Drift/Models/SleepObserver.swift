@@ -2,7 +2,9 @@ import AVFoundation
 import Combine
 import HealthKit
 import MediaPlayer
+#if os(iOS)
 import UIKit
+#endif
 
 // MARK: - SleepObserver
 // Observes HealthKit sleep analysis samples and pauses media on sleep onset.
@@ -119,7 +121,11 @@ class SleepObserver: ObservableObject {
             // (asleepCore / asleepDeep = definitely asleep; asleepREM / asleepUnspecified = also valid)
             if isAsleep(stage) {
                 DispatchQueue.main.async {
+                    #if os(iOS)
                     self.pauseMedia()
+                    #else
+                    self.pauseViaAudioSession()
+                    #endif
                 }
             }
         }
@@ -161,47 +167,37 @@ class SleepObserver: ObservableObject {
 
     // MARK: - Media Control
 
-    /// Sends a pause command via MPRemoteCommandCenter.
-    /// Works for any audio app that registers remote commands (Spotify, Podcasts,
-    /// Apple Music, YouTube Music, etc.)
+    #if os(iOS)
+    /// Sends a pause command via MPRemoteCommandCenter (iOS only).
     private func pauseMedia() {
         let center = MPRemoteCommandCenter.shared()
-        _ = center.pauseCommand.isEnabled  // ensure it's registered
+        _ = center.pauseCommand.isEnabled
 
-        // The canonical way to pause whatever is currently playing
-        let result = MPMusicPlayerController.applicationMusicPlayer.pause()  // for Apple Music
-        // For other apps, send a remote pause event:
+        let result = MPMusicPlayerController.applicationMusicPlayer.pause()
         UIApplication.shared.sendAction(#selector(UIResponder.remoteControlReceived(with:)),
                                         to: nil, from: self, for: remoteControlEvent(.remoteControlPause))
-
         print("Pause command sent. Result: \(result)")
     }
 
     private func remoteControlEvent(_ type: UIEvent.EventSubtype) -> UIEvent? {
-        // Helper to synthesize a remote control event
-        // In practice, use AVAudioSession + MPNowPlayingInfoCenter for robust control
-        return nil  // see note below
+        return nil
     }
+    #endif
 }
-
-// MARK: - Robust media pause (use this instead of the synthesized event above)
-// The cleanest way to pause any system audio:
 
 extension SleepObserver {
 
-    /// Preferred pause approach: deactivate the audio session, which causes
-    /// the playing app to pause (it loses audio focus).
     func pauseViaAudioSession() {
+        #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         do {
-            // Your app must have an active audio session category first
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
-            // Now deactivate with notifyOthersOnDeactivation — this signals other apps to resume/pause
             try session.setActive(false, options: .notifyOthersOnDeactivation)
             print("Audio session deactivated — other apps should pause.")
         } catch {
             print("AVAudioSession error: \(error)")
         }
+        #endif
     }
 }

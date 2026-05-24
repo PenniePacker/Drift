@@ -83,7 +83,9 @@ struct WorldRankingsView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("World rankings")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .task { await loadAll() }
             .refreshable { await loadAll() }
         }

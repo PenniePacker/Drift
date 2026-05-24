@@ -16,8 +16,9 @@
 // The Watch cannot directly access SwiftData (it's in the phone's app group),
 // so all writes go through this bridge.
 
-#if canImport(WatchConnectivity)
 import Foundation
+
+#if canImport(WatchConnectivity)
 import WatchConnectivity
 import Combine
 

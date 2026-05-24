@@ -74,8 +74,9 @@ struct HomeView: View {
                 .padding(.bottom, 32)
             }
             .navigationTitle("Drift")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
-            .background(Color(uiColor: .systemBackground))
+            #endif
         }
     }
 }
@@ -279,7 +280,11 @@ struct BestSleeperCard: View {
             Button {
                 isPlaying.toggle()
                 if let uri = track.deepLinkURI, let url = URL(string: uri) {
+                    #if os(iOS)
                     UIApplication.shared.open(url)
+                    #else
+                    NSWorkspace.shared.open(url)
+                    #endif
                 }
             } label: {
                 Label(isPlaying ? "Stop" : "Play my best sleeper", systemImage: isPlaying ? "stop.fill" : "play.fill")

@@ -14,6 +14,7 @@
 //   NSHealthUpdateUsageDescription
 //   WKBackgroundModes → workout-processing, background-app-refresh
 
+#if os(watchOS)
 import SwiftUI
 import WatchKit
 
@@ -37,3 +38,4 @@ struct DriftWatchApp: App {
         WKNotificationScene(controller: NotificationController.self, category: "sleepDetected")
     }
 }
+#endif // os(watchOS)

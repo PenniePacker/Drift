@@ -16,6 +16,7 @@
 // The Watch cannot directly access SwiftData (it's in the phone's app group),
 // so all writes go through this bridge.
 
+#if canImport(WatchConnectivity)
 import Foundation
 import WatchConnectivity
 import Combine
@@ -69,8 +70,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     // MARK: - Watch → iPhone: send sleep detected
 
-    /// Called from WatchSleepDetector when sleep onset is confirmed.
-    /// The iPhone receives this and calls DriftStore.recordSleepSession().
     func sendSleepDetected(
         onsetDate: Date,
         sleepStage: String,
@@ -78,7 +77,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
         source: String
     ) {
         guard WCSession.default.isReachable else {
-            // Phone not reachable — queue via transferUserInfo (guaranteed delivery)
             WCSession.default.transferUserInfo([
                 MessageKey.type:             MessageKey.sleepDetected,
                 MessageKey.onsetTimestamp:   onsetDate.timeIntervalSince1970,
@@ -102,8 +100,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     // MARK: - iPhone → Watch: push best sleeper
 
-    /// Call this from the iPhone side after DriftStore updates ArtistStat.
-    /// Updates the Watch face with the user's current best sleeper.
     func pushBestSleeper(
         trackTitle: String,
         artistName: String,
@@ -125,8 +121,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil)
         } else {
-            // Use application context for non-urgent updates
-            // (delivered next time Watch app is foregrounded)
             try? WCSession.default.updateApplicationContext(payload)
         }
     }
@@ -139,7 +133,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
         switch type {
 
         case MessageKey.sleepDetected:
-            // Running on iPhone — record the session
             guard let timestamp = message[MessageKey.onsetTimestamp] as? TimeInterval,
                   let stage = message[MessageKey.sleepStage] as? String else { return }
 
@@ -151,16 +144,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
             )
             DispatchQueue.main.async {
                 self.pendingSleepDetection = payload
-                // DriftStore picks this up via .onChange(of: pendingSleepDetection) in DriftApp
                 NotificationCenter.default.post(name: .watchSleepDetected, object: payload)
             }
 
         case MessageKey.bestSleeper:
-            // Running on Watch — update the complication / home view
             DispatchQueue.main.async {
-                self.bestSleeperTitle   = message[MessageKey.trackTitle] as? String ?? ""
-                self.bestSleeperArtist  = message[MessageKey.artistName] as? String ?? ""
-                self.bestSleeperDeepLink = message[MessageKey.deepLinkURI] as? String ?? ""
+                self.bestSleeperTitle        = message[MessageKey.trackTitle] as? String ?? ""
+                self.bestSleeperArtist       = message[MessageKey.artistName] as? String ?? ""
+                self.bestSleeperDeepLink     = message[MessageKey.deepLinkURI] as? String ?? ""
                 self.bestSleeperOnsetMinutes = message[MessageKey.avgOnsetMinutes] as? Double ?? 0
             }
 
@@ -188,7 +179,6 @@ extension WatchSessionManager: WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        // Guaranteed-delivery messages sent when phone was unreachable
         handleMessage(userInfo)
     }
 
@@ -196,7 +186,6 @@ extension WatchSessionManager: WCSessionDelegate {
         handleMessage(applicationContext)
     }
 
-    // iPhone-only delegate methods (not available on Watch)
     #if os(iOS)
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) {
@@ -205,7 +194,9 @@ extension WatchSessionManager: WCSessionDelegate {
     #endif
 }
 
-// MARK: - Supporting types
+#endif // canImport(WatchConnectivity)
+
+// MARK: - Supporting types (available on all platforms)
 
 struct SleepDetectionPayload {
     let onsetDate: Date

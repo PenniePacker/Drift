@@ -74,7 +74,9 @@ struct HistoryView: View {
                 .padding(.top, 8)
             }
             .navigationTitle("History")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
         }
     }
 }
