@@ -46,51 +46,50 @@ enum SampleDataLoader {
         let durationSeconds: Double
         let deepLinkURI: String?
         let sleepStage: String
+        let isLiveStream: Bool
     }
 
     // swiftlint:disable function_body_length
     private static func seeds() -> [SessionSeed] {
         [
-            // Brian Eno — Ambient 1: Music for Airports (5 sessions)
-            SessionSeed(daysAgo: 2,  bedHour: 23, onsetMinutes: 8,  trackTitle: "Ambient 1: Music for Airports", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Ambient 1", elapsedSeconds: 480,  durationSeconds: 2890, deepLinkURI: "spotify:track:ambient1airports", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 5,  bedHour: 22, onsetMinutes: 11, trackTitle: "Ambient 1: Music for Airports", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Ambient 1", elapsedSeconds: 660,  durationSeconds: 2890, deepLinkURI: "spotify:track:ambient1airports", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 8,  bedHour: 23, onsetMinutes: 9,  trackTitle: "Ambient 1: Music for Airports", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Ambient 1", elapsedSeconds: 540,  durationSeconds: 2890, deepLinkURI: "spotify:track:ambient1airports", sleepStage: "asleepDeep"),
-            SessionSeed(daysAgo: 12, bedHour: 22, onsetMinutes: 12, trackTitle: "Ambient 1: Music for Airports", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Ambient 1", elapsedSeconds: 720,  durationSeconds: 2890, deepLinkURI: "spotify:track:ambient1airports", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 17, bedHour: 23, onsetMinutes: 10, trackTitle: "Ambient 1: Music for Airports", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Ambient 1", elapsedSeconds: 600,  durationSeconds: 2890, deepLinkURI: "spotify:track:ambient1airports", sleepStage: "asleepCore"),
-            // Brian Eno — Thursday Afternoon (3 sessions)
-            SessionSeed(daysAgo: 20, bedHour: 23, onsetMinutes: 14, trackTitle: "Thursday Afternoon", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Thursday Afternoon", elapsedSeconds: 840,  durationSeconds: 3660, deepLinkURI: "spotify:track:thursdayafternoon", sleepStage: "asleepREM"),
-            SessionSeed(daysAgo: 24, bedHour: 22, onsetMinutes: 16, trackTitle: "Thursday Afternoon", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Thursday Afternoon", elapsedSeconds: 960,  durationSeconds: 3660, deepLinkURI: "spotify:track:thursdayafternoon", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 28, bedHour: 23, onsetMinutes: 13, trackTitle: "Thursday Afternoon", artistName: "Brian Eno", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Thursday Afternoon", elapsedSeconds: 780,  durationSeconds: 3660, deepLinkURI: "spotify:track:thursdayafternoon", sleepStage: "asleepCore"),
+            // Joe Rogan — The Joe Rogan Experience (6 sessions, ~8 min avg onset)
+            SessionSeed(daysAgo: 1,  bedHour: 23, onsetMinutes: 7,  trackTitle: "JRE #2001 — Theo Von",             artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 420, durationSeconds: 8460, deepLinkURI: "spotify:episode:jre2001", sleepStage: "asleepCore",        isLiveStream: false),
+            SessionSeed(daysAgo: 5,  bedHour: 22, onsetMinutes: 9,  trackTitle: "JRE #1988 — Andrew Huberman",      artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 540, durationSeconds: 9120, deepLinkURI: "spotify:episode:jre1988", sleepStage: "asleepCore",        isLiveStream: false),
+            SessionSeed(daysAgo: 10, bedHour: 23, onsetMinutes: 8,  trackTitle: "JRE #2067 — Mark Zuckerberg",      artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 480, durationSeconds: 7920, deepLinkURI: "spotify:episode:jre2067", sleepStage: "asleepDeep",       isLiveStream: false),
+            SessionSeed(daysAgo: 17, bedHour: 22, onsetMinutes: 7,  trackTitle: "JRE #2134 — Shane Gillis",         artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 420, durationSeconds: 8700, deepLinkURI: "spotify:episode:jre2134", sleepStage: "asleepCore",        isLiveStream: false),
+            SessionSeed(daysAgo: 24, bedHour: 23, onsetMinutes: 10, trackTitle: "JRE #2089 — Jordan Peterson",      artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 600, durationSeconds: 9540, deepLinkURI: "spotify:episode:jre2089", sleepStage: "asleepUnspecified", isLiveStream: false),
+            SessionSeed(daysAgo: 30, bedHour: 22, onsetMinutes: 9,  trackTitle: "JRE #1958 — Naval Ravikant",       artistName: "Joe Rogan", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Joe Rogan Experience", elapsedSeconds: 540, durationSeconds: 8280, deepLinkURI: "spotify:episode:jre1958", sleepStage: "asleepCore",        isLiveStream: false),
 
-            // Max Richter — Sleep (4 sessions)
-            SessionSeed(daysAgo: 3,  bedHour: 22, onsetMinutes: 12, trackTitle: "Sleep", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Sleep", elapsedSeconds: 720,  durationSeconds: 28800, deepLinkURI: "spotify:track:maxrichtersleep", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 7,  bedHour: 23, onsetMinutes: 15, trackTitle: "Sleep", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Sleep", elapsedSeconds: 900,  durationSeconds: 28800, deepLinkURI: "spotify:track:maxrichtersleep", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 14, bedHour: 22, onsetMinutes: 11, trackTitle: "Sleep", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Sleep", elapsedSeconds: 660,  durationSeconds: 28800, deepLinkURI: "spotify:track:maxrichtersleep", sleepStage: "asleepDeep"),
-            SessionSeed(daysAgo: 21, bedHour: 23, onsetMinutes: 17, trackTitle: "Sleep", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Sleep", elapsedSeconds: 1020, durationSeconds: 28800, deepLinkURI: "spotify:track:maxrichtersleep", sleepStage: "asleepCore"),
-            // Max Richter — On the Nature of Daylight (2 sessions)
-            SessionSeed(daysAgo: 9,  bedHour: 23, onsetMinutes: 21, trackTitle: "On the Nature of Daylight", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Blue Notebooks", elapsedSeconds: 1260, durationSeconds: 394, deepLinkURI: "spotify:track:natureofday", sleepStage: "asleepREM"),
-            SessionSeed(daysAgo: 19, bedHour: 22, onsetMinutes: 24, trackTitle: "On the Nature of Daylight", artistName: "Max Richter", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "The Blue Notebooks", elapsedSeconds: 1440, durationSeconds: 394, deepLinkURI: "spotify:track:natureofday", sleepStage: "asleepCore"),
+            // Lofi Girl — YouTube live stream (6 sessions, ~6 min avg onset)
+            SessionSeed(daysAgo: 2,  bedHour: 23, onsetMinutes: 5, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 300, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepCore",  isLiveStream: true),
+            SessionSeed(daysAgo: 6,  bedHour: 23, onsetMinutes: 7, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 420, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepCore",  isLiveStream: true),
+            SessionSeed(daysAgo: 11, bedHour: 22, onsetMinutes: 6, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 360, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepDeep", isLiveStream: true),
+            SessionSeed(daysAgo: 18, bedHour: 23, onsetMinutes: 8, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 480, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepCore",  isLiveStream: true),
+            SessionSeed(daysAgo: 25, bedHour: 22, onsetMinutes: 5, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 300, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepCore",  isLiveStream: true),
+            SessionSeed(daysAgo: 29, bedHour: 23, onsetMinutes: 7, trackTitle: "lofi hip hop radio — beats to relax/study to", artistName: "Lofi Girl", appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", albumOrShow: nil, elapsedSeconds: 420, durationSeconds: 0, deepLinkURI: nil, sleepStage: "asleepREM",  isLiveStream: true),
 
-            // The Daily — NYT Podcasts (5 sessions, different episodes)
-            SessionSeed(daysAgo: 1,  bedHour: 23, onsetMinutes: 7,  trackTitle: "The Battle Over AI in Schools", artistName: "The Daily", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "The Daily", elapsedSeconds: 420,  durationSeconds: 1980, deepLinkURI: nil, sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 4,  bedHour: 23, onsetMinutes: 9,  trackTitle: "Is the U.S. Economy Heading for a Recession?", artistName: "The Daily", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "The Daily", elapsedSeconds: 540,  durationSeconds: 2160, deepLinkURI: nil, sleepStage: "asleepUnspecified"),
-            SessionSeed(daysAgo: 10, bedHour: 22, onsetMinutes: 6,  trackTitle: "The Rise of the Anti-Streaming Movement", artistName: "The Daily", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "The Daily", elapsedSeconds: 360,  durationSeconds: 1740, deepLinkURI: nil, sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 15, bedHour: 23, onsetMinutes: 8,  trackTitle: "A Conversation With the Surgeon General", artistName: "The Daily", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "The Daily", elapsedSeconds: 480,  durationSeconds: 1920, deepLinkURI: nil, sleepStage: "asleepDeep"),
-            SessionSeed(daysAgo: 22, bedHour: 22, onsetMinutes: 7,  trackTitle: "The Week in Good News", artistName: "The Daily", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "The Daily", elapsedSeconds: 420,  durationSeconds: 1620, deepLinkURI: nil, sleepStage: "asleepCore"),
+            // Huberman Lab — podcast (5 sessions, ~10 min avg onset)
+            SessionSeed(daysAgo: 3,  bedHour: 23, onsetMinutes: 9,  trackTitle: "Master Your Sleep & Be More Alert When Awake",              artistName: "Huberman Lab", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "Huberman Lab", elapsedSeconds: 540, durationSeconds: 5820, deepLinkURI: nil, sleepStage: "asleepCore",        isLiveStream: false),
+            SessionSeed(daysAgo: 9,  bedHour: 22, onsetMinutes: 11, trackTitle: "The Science of Setting & Achieving Goals",                  artistName: "Huberman Lab", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "Huberman Lab", elapsedSeconds: 660, durationSeconds: 6480, deepLinkURI: nil, sleepStage: "asleepCore",        isLiveStream: false),
+            SessionSeed(daysAgo: 15, bedHour: 23, onsetMinutes: 10, trackTitle: "Optimize Your Learning & Creativity With Science",          artistName: "Huberman Lab", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "Huberman Lab", elapsedSeconds: 600, durationSeconds: 7140, deepLinkURI: nil, sleepStage: "asleepDeep",       isLiveStream: false),
+            SessionSeed(daysAgo: 22, bedHour: 22, onsetMinutes: 12, trackTitle: "Control Your Dopamine for Motivation, Focus & Satisfaction", artistName: "Huberman Lab", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "Huberman Lab", elapsedSeconds: 720, durationSeconds: 6900, deepLinkURI: nil, sleepStage: "asleepUnspecified", isLiveStream: false),
+            SessionSeed(daysAgo: 28, bedHour: 23, onsetMinutes: 11, trackTitle: "Master Your Sleep & Be More Alert When Awake",              artistName: "Huberman Lab", appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", albumOrShow: "Huberman Lab", elapsedSeconds: 660, durationSeconds: 5820, deepLinkURI: nil, sleepStage: "asleepCore",        isLiveStream: false),
 
-            // Radiohead — How to Disappear Completely (3 sessions)
-            SessionSeed(daysAgo: 6,  bedHour: 23, onsetMinutes: 19, trackTitle: "How to Disappear Completely", artistName: "Radiohead", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Kid A", elapsedSeconds: 1140, durationSeconds: 336, deepLinkURI: "spotify:track:howtodisappear", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 13, bedHour: 22, onsetMinutes: 22, trackTitle: "How to Disappear Completely", artistName: "Radiohead", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Kid A", elapsedSeconds: 1320, durationSeconds: 336, deepLinkURI: "spotify:track:howtodisappear", sleepStage: "asleepREM"),
-            SessionSeed(daysAgo: 25, bedHour: 23, onsetMinutes: 18, trackTitle: "How to Disappear Completely", artistName: "Radiohead", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Kid A", elapsedSeconds: 1080, durationSeconds: 336, deepLinkURI: "spotify:track:howtodisappear", sleepStage: "asleepCore"),
-            // Radiohead — Motion Picture Soundtrack (1 session)
-            SessionSeed(daysAgo: 30, bedHour: 23, onsetMinutes: 17, trackTitle: "Motion Picture Soundtrack", artistName: "Radiohead", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Kid A", elapsedSeconds: 1020, durationSeconds: 284, deepLinkURI: "spotify:track:motionpicture", sleepStage: "asleepCore"),
+            // James Blake — Overgrown / James Blake (4 sessions, ~12 min avg onset)
+            SessionSeed(daysAgo: 4,  bedHour: 23, onsetMinutes: 12, trackTitle: "Retrograde",         artistName: "James Blake", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Overgrown",   elapsedSeconds: 120, durationSeconds: 249, deepLinkURI: "spotify:track:retrograde",        sleepStage: "asleepCore", isLiveStream: false),
+            SessionSeed(daysAgo: 13, bedHour: 22, onsetMinutes: 14, trackTitle: "The Wilhelm Scream",  artistName: "James Blake", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "James Blake", elapsedSeconds: 140, durationSeconds: 240, deepLinkURI: "spotify:track:wilhelmscream",     sleepStage: "asleepREM",  isLiveStream: false),
+            SessionSeed(daysAgo: 20, bedHour: 23, onsetMinutes: 11, trackTitle: "Retrograde",         artistName: "James Blake", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Overgrown",   elapsedSeconds: 110, durationSeconds: 249, deepLinkURI: "spotify:track:retrograde",        sleepStage: "asleepCore", isLiveStream: false),
+            SessionSeed(daysAgo: 27, bedHour: 22, onsetMinutes: 13, trackTitle: "Limit to Your Love", artistName: "James Blake", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "James Blake", elapsedSeconds: 130, durationSeconds: 260, deepLinkURI: "spotify:track:limittoyourlove",  sleepStage: "asleepCore", isLiveStream: false),
 
-            // Sleep Token — (3 sessions, just unlocked)
-            SessionSeed(daysAgo: 11, bedHour: 23, onsetMinutes: 17, trackTitle: "The Summoning", artistName: "Sleep Token", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Take Me Back to Eden", elapsedSeconds: 1020, durationSeconds: 374, deepLinkURI: "spotify:track:thesummoning", sleepStage: "asleepCore"),
-            SessionSeed(daysAgo: 18, bedHour: 22, onsetMinutes: 20, trackTitle: "The Summoning", artistName: "Sleep Token", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Take Me Back to Eden", elapsedSeconds: 1200, durationSeconds: 374, deepLinkURI: "spotify:track:thesummoning", sleepStage: "asleepDeep"),
-            SessionSeed(daysAgo: 26, bedHour: 23, onsetMinutes: 23, trackTitle: "Aqua Regia", artistName: "Sleep Token", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "Take Me Back to Eden", elapsedSeconds: 1380, durationSeconds: 298, deepLinkURI: "spotify:track:aquaregia", sleepStage: "asleepREM"),
+            // Taylor Swift — folklore / evermore (5 sessions, ~15 min avg onset)
+            SessionSeed(daysAgo: 7,  bedHour: 23, onsetMinutes: 14, trackTitle: "the lakes",                 artistName: "Taylor Swift", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "folklore",  elapsedSeconds: 120, durationSeconds: 211, deepLinkURI: "spotify:track:thelakes",  sleepStage: "asleepCore", isLiveStream: false),
+            SessionSeed(daysAgo: 12, bedHour: 22, onsetMinutes: 16, trackTitle: "seven",                     artistName: "Taylor Swift", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "folklore",  elapsedSeconds: 140, durationSeconds: 247, deepLinkURI: "spotify:track:seven",     sleepStage: "asleepCore", isLiveStream: false),
+            SessionSeed(daysAgo: 16, bedHour: 23, onsetMinutes: 15, trackTitle: "the lakes",                 artistName: "Taylor Swift", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "folklore",  elapsedSeconds: 130, durationSeconds: 211, deepLinkURI: "spotify:track:thelakes",  sleepStage: "asleepDeep", isLiveStream: false),
+            SessionSeed(daysAgo: 23, bedHour: 22, onsetMinutes: 17, trackTitle: "august",                    artistName: "Taylor Swift", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "folklore",  elapsedSeconds: 150, durationSeconds: 261, deepLinkURI: "spotify:track:august",    sleepStage: "asleepREM",  isLiveStream: false),
+            SessionSeed(daysAgo: 26, bedHour: 23, onsetMinutes: 13, trackTitle: "evermore (feat. Bon Iver)", artistName: "Taylor Swift", appBundleID: "com.spotify.client", appDisplayName: "Spotify", albumOrShow: "evermore", elapsedSeconds: 110, durationSeconds: 304, deepLinkURI: "spotify:track:evermore",  sleepStage: "asleepCore", isLiveStream: false),
         ]
     }
+    // swiftlint:enable function_body_length
 
     // MARK: - Build SleepSessions
 
@@ -109,7 +108,7 @@ enum SampleDataLoader {
                 albumOrShow: seed.albumOrShow,
                 elapsedSeconds: seed.elapsedSeconds,
                 durationSeconds: seed.durationSeconds,
-                isLiveStream: false,
+                isLiveStream: seed.isLiveStream,
                 deepLinkURI: seed.deepLinkURI,
                 spotifyID: nil
             )
@@ -125,24 +124,23 @@ enum SampleDataLoader {
     // MARK: - Build ArtistStats + TrackStats
 
     private static func buildArtistStats(from sessions: [SleepSession]) -> [ArtistStat] {
-        // Group sessions by artist
         let grouped = Dictionary(grouping: sessions) {
             $0.mediaSnapshot?.artistName ?? "Unknown"
         }
 
         let emojis: [String: String] = [
-            "Brian Eno":    "🎹",
-            "Max Richter":  "🎻",
-            "The Daily":    "🎙️",
-            "Radiohead":    "🎸",
-            "Sleep Token":  "🌙",
+            "Joe Rogan":    "🎙️",
+            "Lofi Girl":    "🎧",
+            "Huberman Lab": "🧠",
+            "James Blake":  "🎹",
+            "Taylor Swift": "🎶",
         ]
         let apps: [String: (bundleID: String, displayName: String)] = [
-            "Brian Eno":    ("com.spotify.client", "Spotify"),
-            "Max Richter":  ("com.spotify.client", "Spotify"),
-            "The Daily":    ("com.apple.podcasts", "Podcasts"),
-            "Radiohead":    ("com.spotify.client", "Spotify"),
-            "Sleep Token":  ("com.spotify.client", "Spotify"),
+            "Joe Rogan":    ("com.spotify.client",      "Spotify"),
+            "Lofi Girl":    ("com.google.ios.youtube",  "YouTube"),
+            "Huberman Lab": ("com.apple.podcasts",      "Podcasts"),
+            "James Blake":  ("com.spotify.client",      "Spotify"),
+            "Taylor Swift": ("com.spotify.client",      "Spotify"),
         ]
 
         return grouped.compactMap { artistName, artistSessions in

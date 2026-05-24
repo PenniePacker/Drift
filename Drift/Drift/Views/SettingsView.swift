@@ -137,7 +137,7 @@ struct SettingsView: View {
                     } header: {
                         Text("Debug")
                     } footer: {
-                        Text("Inserts 26 realistic sessions across 5 artists. Only available in debug builds.")
+                        Text("Inserts 26 sessions: Joe Rogan, Lofi Girl, Huberman Lab, James Blake, Taylor Swift. Debug only.")
                     }
                 }
                 #endif
