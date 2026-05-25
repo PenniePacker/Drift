@@ -99,10 +99,8 @@ struct WorldRankingsView: View {
 
     @MainActor
     private func loadAll() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { loadLeaderboard() }
-            group.addTask { await loadStats() }
-        }
+        loadLeaderboard()
+        await loadStats()
     }
 
     private func loadLeaderboard() {

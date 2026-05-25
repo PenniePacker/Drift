@@ -173,10 +173,10 @@ class SleepObserver: ObservableObject {
         let center = MPRemoteCommandCenter.shared()
         _ = center.pauseCommand.isEnabled
 
-        let result = MPMusicPlayerController.applicationMusicPlayer.pause()
+        MPMusicPlayerController.applicationMusicPlayer.pause()
         UIApplication.shared.sendAction(#selector(UIResponder.remoteControlReceived(with:)),
                                         to: nil, from: self, for: remoteControlEvent(.remoteControlPause))
-        print("Pause command sent. Result: \(result)")
+        print("Pause command sent.")
     }
 
     private func remoteControlEvent(_ type: UIEvent.EventSubtype) -> UIEvent? {

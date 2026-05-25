@@ -299,8 +299,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphoneos*]" = "Drift reads your HealthKit sleep data to detect when you fall asleep and automatically pause your music.";
-				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphonesimulator*]" = "Drift reads your HealthKit sleep data to detect when you fall asleep and automatically pause your music.";
+				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphoneos*]" = "Drift uses HealthKit to detect when you fall asleep. No sleep data is ever uploaded.";
+				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphonesimulator*]" = "Drift uses HealthKit to detect when you fall asleep. No sleep data is ever uploaded.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -343,8 +343,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphoneos*]" = "Drift reads your HealthKit sleep data to detect when you fall asleep and automatically pause your music.";
-				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphonesimulator*]" = "Drift reads your HealthKit sleep data to detect when you fall asleep and automatically pause your music.";
+				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphoneos*]" = "Drift uses HealthKit to detect when you fall asleep. No sleep data is ever uploaded.";
+				"INFOPLIST_KEY_NSHealthShareUsageDescription[sdk=iphonesimulator*]" = "Drift uses HealthKit to detect when you fall asleep. No sleep data is ever uploaded.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

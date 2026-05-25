@@ -3,6 +3,6 @@
 // Config.swift is gitignored — this file is the committed placeholder.
 
 enum Config {
-    static let supabaseBaseURL = "https://YOUR_PROJECT.supabase.co/rest/v1"
-    static let supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY"
+    nonisolated(unsafe) static let supabaseBaseURL = "https://YOUR_PROJECT.supabase.co/rest/v1"
+    nonisolated(unsafe) static let supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY"
 }

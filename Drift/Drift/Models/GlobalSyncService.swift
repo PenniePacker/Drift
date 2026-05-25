@@ -15,8 +15,8 @@ import SwiftData
 
 // MARK: - Contribution payload (what gets sent to the server)
 
-struct ArtistContribution: Codable {
-    let contributionToken: String   // random per-install UUID, not user-linked
+struct ArtistContribution: Sendable {
+    let contributionToken: String
     let artistName: String
     let appBundleID: String
     let appDisplayName: String
@@ -27,18 +27,70 @@ struct ArtistContribution: Codable {
     let appVersion: String
 }
 
+extension ArtistContribution: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case contributionToken  = "contribution_token"
+        case artistName         = "artist_name"
+        case appBundleID        = "app_bundle_id"
+        case appDisplayName     = "app_display_name"
+        case categoryEmoji      = "category_emoji"
+        case sessionCount       = "session_count"
+        case averageOnsetMinutes = "average_onset_minutes"
+        case driftScore         = "drift_score"
+        case appVersion         = "app_version"
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(contributionToken,   forKey: .contributionToken)
+        try c.encode(artistName,          forKey: .artistName)
+        try c.encode(appBundleID,         forKey: .appBundleID)
+        try c.encode(appDisplayName,      forKey: .appDisplayName)
+        try c.encode(categoryEmoji,       forKey: .categoryEmoji)
+        try c.encode(sessionCount,        forKey: .sessionCount)
+        try c.encode(averageOnsetMinutes, forKey: .averageOnsetMinutes)
+        try c.encode(driftScore,          forKey: .driftScore)
+        try c.encode(appVersion,          forKey: .appVersion)
+    }
+}
+
 // MARK: - Global leaderboard response
 
-struct GlobalLeaderboardEntry: Codable, Identifiable {
+struct GlobalLeaderboardEntry: Identifiable, Sendable {
     var id: String { artistName + appBundleID }
     let artistName: String
     let appBundleID: String
     let appDisplayName: String
     let categoryEmoji: String
-    let totalSessions: Int          // sum across all contributors
-    let averageOnsetMinutes: Double // weighted average across contributors
-    let globalDriftScore: Double    // aggregate score
-    let contributorCount: Int       // how many users have this artist
+    let totalSessions: Int
+    let averageOnsetMinutes: Double
+    let globalDriftScore: Double
+    let contributorCount: Int
+}
+
+extension GlobalLeaderboardEntry: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case artistName         = "artist_name"
+        case appBundleID        = "app_bundle_id"
+        case appDisplayName     = "app_display_name"
+        case categoryEmoji      = "category_emoji"
+        case totalSessions      = "total_sessions"
+        case averageOnsetMinutes = "average_onset_minutes"
+        case globalDriftScore   = "global_drift_score"
+        case contributorCount   = "contributor_count"
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        artistName          = try c.decode(String.self, forKey: .artistName)
+        appBundleID         = try c.decode(String.self, forKey: .appBundleID)
+        appDisplayName      = try c.decode(String.self, forKey: .appDisplayName)
+        categoryEmoji       = try c.decode(String.self, forKey: .categoryEmoji)
+        totalSessions       = try c.decode(Int.self,    forKey: .totalSessions)
+        averageOnsetMinutes = try c.decode(Double.self, forKey: .averageOnsetMinutes)
+        globalDriftScore    = try c.decode(Double.self, forKey: .globalDriftScore)
+        contributorCount    = try c.decode(Int.self,    forKey: .contributorCount)
+    }
 }
 
 // MARK: - GlobalSyncService
@@ -47,8 +99,8 @@ actor GlobalSyncService {
 
     static let shared = GlobalSyncService()
 
-    private let baseURL = URL(string: Config.supabaseBaseURL)!
-    private let anonKey = Config.supabaseAnonKey
+    nonisolated private let baseURL = URL(string: Config.supabaseBaseURL)!
+    nonisolated private let anonKey = Config.supabaseAnonKey
 
     // Random UUID stored in Keychain. Never changes. Not linked to any identity.
     private var contributionToken: String {
