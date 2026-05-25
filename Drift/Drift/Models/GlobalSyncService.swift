@@ -47,9 +47,8 @@ actor GlobalSyncService {
 
     static let shared = GlobalSyncService()
 
-    // Replace with your Supabase project URL and anon key
-    private let baseURL = URL(string: "https://YOUR_PROJECT.supabase.co/rest/v1")!
-    private let anonKey = "YOUR_SUPABASE_ANON_KEY"
+    private let baseURL = URL(string: Config.supabaseBaseURL)!
+    private let anonKey = Config.supabaseAnonKey
 
     // Random UUID stored in Keychain. Never changes. Not linked to any identity.
     private var contributionToken: String {

@@ -42,3 +42,6 @@ fastlane/test_output
 # Simulator
 *.app.dSYM.zip
 *.app.dSYM
+
+# Secrets — never commit real credentials
+**/Config.swift

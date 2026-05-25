@@ -126,9 +126,9 @@ struct WorldRankingsView: View {
 
     private func loadStats() async {
         // leaderboard_stats RPC — optional, graceful failure
-        guard let url = URL(string: "https://YOUR_PROJECT.supabase.co/rest/v1/rpc/leaderboard_stats") else { return }
+        guard let url = URL(string: "\(Config.supabaseBaseURL)/rpc/leaderboard_stats") else { return }
         var request = URLRequest(url: url)
-        request.setValue("YOUR_SUPABASE_ANON_KEY", forHTTPHeaderField: "apikey")
+        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.httpMethod = "POST"
         if let (data, _) = try? await URLSession.shared.data(for: request),
            let json = try? JSONDecoder().decode([String: Int].self, from: data),
