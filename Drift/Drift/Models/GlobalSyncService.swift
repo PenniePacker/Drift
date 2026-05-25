@@ -92,8 +92,8 @@ actor GlobalSyncService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
-        // Upsert: if this token+artist combo exists, update it
-        request.setValue("contribution_token,artist_name,app_bundle_id", forHTTPHeaderField: "Prefer")
+        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("return=minimal,resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
         request.httpBody = try? JSONEncoder().encode(payload)
 
         do {
@@ -111,7 +111,7 @@ actor GlobalSyncService {
     func fetchLeaderboard(category: LeaderboardCategory, limit: Int = 50) async throws -> [GlobalLeaderboardEntry] {
         var components = URLComponents(url: baseURL.appendingPathComponent("global_leaderboard"), resolvingAgainstBaseURL: false)!
         components.queryItems = [
-            URLQueryItem(name: "category", value: category.rawValue),
+            URLQueryItem(name: "category", value: "eq.\(category.rawValue)"),
             URLQueryItem(name: "limit", value: "\(limit)"),
             URLQueryItem(name: "order", value: "global_drift_score.desc")
         ]
