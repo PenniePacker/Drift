@@ -44,6 +44,31 @@ enum ManualSleepLogger {
             .requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    /// Schedule the morning summary notification after a sleep session is recorded.
+    /// Uses the same 8 AM wake time as the manual-log reminder.
+    static func scheduleMorningSummary(artistName: String?, onsetMinutes: Double) {
+        let content = UNMutableNotificationContent()
+        content.title = "Last night's drift"
+        if let artist = artistName, !artist.isEmpty {
+            content.body = "\(artist) helped you drift off last night 🌙"
+        } else {
+            content.body = "You drifted off in \(max(1, Int(onsetMinutes.rounded()))) minutes last night 🌙"
+        }
+        content.sound = .default
+        content.userInfo = ["action": "openHistory"]
+
+        var comps = DateComponents()
+        comps.hour   = 8
+        comps.minute = 0
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "drift_morning_summary",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
     private static func scheduleMorningNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Good morning"

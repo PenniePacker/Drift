@@ -8,6 +8,97 @@
 import SwiftUI
 import SwiftData
 
+// Set to false once real users are contributing to Supabase.
+private let useMockData = true
+
+// MARK: - Mock leaderboard data
+
+private enum MockLeaderboard {
+
+    static func entries(for category: GlobalSyncService.LeaderboardCategory) -> [GlobalLeaderboardEntry] {
+        switch category {
+        case .artists:  return artists
+        case .podcasts: return podcasts
+        case .tracks:   return tracks
+        }
+    }
+
+    // Drift score = sessions × (30 / avgOnset) — higher is better
+    // Score is pre-rounded to 1 decimal for realism
+
+    static let artists: [GlobalLeaderboardEntry] = [
+        .mock("Brian Eno",       app: "Spotify",      emoji: "🎹", sessions: 3_842, contributors: 512, avgOnset: 11.4, score: 10_110),
+        .mock("Nils Frahm",      app: "Spotify",      emoji: "🎹", sessions: 2_907, contributors: 389, avgOnset: 13.2, score: 6_607),
+        .mock("Max Richter",     app: "Apple Music",  emoji: "🎻", sessions: 2_561, contributors: 341, avgOnset: 14.8, score: 5_192),
+        .mock("Lofi Girl",       app: "YouTube",      emoji: "🎧", sessions: 4_103, contributors: 621, avgOnset: 18.6, score: 6_618),
+        .mock("James Blake",     app: "Spotify",      emoji: "🎹", sessions: 1_874, contributors: 253, avgOnset: 16.9, score: 3_328),
+        .mock("Taylor Swift",    app: "Spotify",      emoji: "🎶", sessions: 1_492, contributors: 198, avgOnset: 22.4, score: 1_997),
+        .mock("Aphex Twin",      app: "Spotify",      emoji: "🎵", sessions: 1_203, contributors: 167, avgOnset: 17.3, score: 2_086),
+        .mock("Ólafur Arnalds",  app: "Apple Music",  emoji: "🎻", sessions:   988, contributors: 134, avgOnset: 19.7, score: 1_504),
+        .mock("Johann Johannsson", app: "Spotify",    emoji: "🎻", sessions:   741, contributors: 102, avgOnset: 21.1, score: 1_054),
+        .mock("Erik Satie",      app: "Apple Music",  emoji: "🎹", sessions:   604, contributors:  89, avgOnset: 15.3, score: 1_184),
+    ]
+
+    static let podcasts: [GlobalLeaderboardEntry] = [
+        .mock("Huberman Lab",    app: "Apple Podcasts", emoji: "🧠", sessions: 5_219, contributors: 743, avgOnset: 17.2, score: 9_103),
+        .mock("Joe Rogan (JRE)", app: "Spotify",        emoji: "🎙️", sessions: 4_887, contributors: 698, avgOnset: 20.4, score: 7_191),
+        .mock("Sleep With Me",   app: "Apple Podcasts", emoji: "😴", sessions: 3_654, contributors: 501, avgOnset: 12.8, score: 8_563),
+        .mock("Lex Fridman",     app: "Spotify",        emoji: "🤖", sessions: 2_931, contributors: 412, avgOnset: 22.1, score: 3_980),
+        .mock("Serial",          app: "Apple Podcasts", emoji: "🔍", sessions: 1_847, contributors: 261, avgOnset: 24.7, score: 2_244),
+        .mock("Nothing Much Happens", app: "Apple Podcasts", emoji: "🌿", sessions: 1_603, contributors: 229, avgOnset: 14.1, score: 3_413),
+        .mock("Daily Meditation", app: "Spotify",       emoji: "🧘", sessions: 1_244, contributors: 177, avgOnset: 16.3, score: 2_289),
+        .mock("Stuff You Missed in History", app: "Apple Podcasts", emoji: "📜", sessions: 1_089, contributors: 155, avgOnset: 23.8, score: 1_372),
+        .mock("Conan O'Brien Needs a Friend", app: "Spotify", emoji: "😂", sessions:   876, contributors: 124, avgOnset: 26.2, score: 1_003),
+        .mock("Philosophy Bites", app: "Apple Podcasts", emoji: "💭", sessions:   712, contributors: 101, avgOnset: 19.4, score: 1_101),
+    ]
+
+    static let tracks: [GlobalLeaderboardEntry] = [
+        .mock("Weightless",                  app: "Spotify",      emoji: "🎵", sessions: 6_102, contributors: 891, avgOnset:  8.3, score: 22_057),
+        .mock("On the Nature of Daylight",   app: "Apple Music",  emoji: "🎻", sessions: 3_874, contributors: 541, avgOnset: 10.7, score: 10_856),
+        .mock("Retrograde",                  app: "Spotify",      emoji: "🎹", sessions: 2_941, contributors: 407, avgOnset: 14.1, score: 6_257),
+        .mock("Gymnopédie No.1",             app: "Apple Music",  emoji: "🎹", sessions: 2_487, contributors: 352, avgOnset: 12.4, score: 6_021),
+        .mock("Spiegel im Spiegel",          app: "Spotify",      emoji: "🎻", sessions: 1_993, contributors: 283, avgOnset: 11.8, score: 5_067),
+        .mock("experience",                  app: "Apple Music",  emoji: "🎹", sessions: 1_744, contributors: 248, avgOnset: 13.5, score: 3_876),
+        .mock("Avril 14th",                  app: "Spotify",      emoji: "🎵", sessions: 1_502, contributors: 214, avgOnset: 15.2, score: 2_962),
+        .mock("Comptine d'un autre été",     app: "Apple Music",  emoji: "🎹", sessions: 1_287, contributors: 183, avgOnset: 16.7, score: 2_312),
+        .mock("Sleep",                       app: "Spotify",      emoji: "🎻", sessions: 1_044, contributors: 149, avgOnset: 18.3, score: 1_712),
+        .mock("Night Owl",                   app: "Spotify",      emoji: "🦉", sessions:   831, contributors: 119, avgOnset: 20.1, score: 1_241),
+    ]
+}
+
+private extension GlobalLeaderboardEntry {
+    static func mock(
+        _ name: String,
+        app: String,
+        emoji: String,
+        sessions: Int,
+        contributors: Int,
+        avgOnset: Double,
+        score: Int
+    ) -> GlobalLeaderboardEntry {
+        GlobalLeaderboardEntry(
+            artistName: name,
+            appBundleID: bundleID(for: app),
+            appDisplayName: app,
+            categoryEmoji: emoji,
+            totalSessions: sessions,
+            averageOnsetMinutes: avgOnset,
+            globalDriftScore: Double(score),
+            contributorCount: contributors
+        )
+    }
+
+    private static func bundleID(for app: String) -> String {
+        switch app {
+        case "Spotify":        return "com.spotify.client"
+        case "Apple Music":    return "com.apple.Music"
+        case "Apple Podcasts": return "com.apple.podcasts"
+        case "YouTube":        return "com.google.ios.youtube"
+        default:               return "com.drift.unknown"
+        }
+    }
+}
+
 struct WorldRankingsView: View {
 
     @Query(
@@ -110,12 +201,15 @@ struct WorldRankingsView: View {
             do {
                 let result = try await GlobalSyncService.shared.fetchLeaderboard(category: selectedCategory)
                 await MainActor.run {
-                    entries = result
+                    entries = (useMockData && result.isEmpty)
+                        ? MockLeaderboard.entries(for: selectedCategory)
+                        : result
                     isLoading = false
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Couldn't load rankings. Pull to retry."
+                    entries = useMockData ? MockLeaderboard.entries(for: selectedCategory) : []
+                    errorMessage = useMockData ? nil : "Couldn't load rankings. Pull to retry."
                     isLoading = false
                 }
             }
@@ -123,7 +217,12 @@ struct WorldRankingsView: View {
     }
 
     private func loadStats() async {
-        // leaderboard_stats RPC — optional, graceful failure
+        if useMockData && contributorCount == 0 {
+            // Sum unique contributors across the mock artists tab as a placeholder
+            let total = MockLeaderboard.artists.map(\.contributorCount).reduce(0, +)
+            await MainActor.run { contributorCount = total }
+            return
+        }
         guard let url = URL(string: "\(Config.supabaseBaseURL)/rpc/leaderboard_stats") else { return }
         var request = URLRequest(url: url)
         request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")

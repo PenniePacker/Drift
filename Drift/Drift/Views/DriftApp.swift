@@ -6,11 +6,43 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
+
+// MARK: - Notification delegate
+
+final class DriftNotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = DriftNotificationDelegate()
+    private override init() { super.init() }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        if response.notification.request.content.userInfo["action"] as? String == "openHistory" {
+            NotificationCenter.default.post(name: .driftOpenHistory, object: nil)
+        }
+        completionHandler()
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
+
+extension Notification.Name {
+    static let driftOpenHistory = Notification.Name("driftOpenHistory")
+}
 
 @main
 struct DriftApp: App {
 
     @StateObject private var sleepObserver = SleepObserver()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     #if canImport(WatchConnectivity)
     @StateObject private var watchSession = WatchSessionManager.shared
     #endif
@@ -23,8 +55,14 @@ struct DriftApp: App {
                 .environmentObject(watchSession)
                 #endif
                 .onAppear {
-                    sleepObserver.start()
+                    // Defer observer start until onboarding is complete so the
+                    // HealthKit permission dialog appears at the right moment.
+                    if hasCompletedOnboarding { sleepObserver.start() }
                     ManualSleepLogger.requestNotificationPermission()
+                    UNUserNotificationCenter.current().delegate = DriftNotificationDelegate.shared
+                }
+                .onChange(of: hasCompletedOnboarding) { _, completed in
+                    if completed { sleepObserver.start() }
                 }
                 #if canImport(WatchConnectivity)
                 .onReceive(NotificationCenter.default.publisher(for: .watchSleepDetected)) { notification in
@@ -46,6 +84,10 @@ struct DriftApp: App {
             mediaSnapshot: mediaSnapshot
         )
         sleepObserver.pauseViaAudioSession()
+        ManualSleepLogger.scheduleMorningSummary(
+            artistName: mediaSnapshot?.artistName,
+            onsetMinutes: payload.estimatedTimeInBedSeconds / 60
+        )
         pushBestSleeperToWatch()
     }
 
@@ -66,34 +108,42 @@ struct DriftApp: App {
 // MARK: - ContentView (Tab container)
 
 struct ContentView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showOnboarding = false
+    @State private var selectedTab = 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "moon.fill")
-                }
+                .tabItem { Label("Home", systemImage: "moon.fill") }
+                .tag(0)
 
             HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "chart.line.uptrend.xyaxis")
-                }
+                .tabItem { Label("History", systemImage: "chart.line.uptrend.xyaxis") }
+                .tag(1)
 
             ArtistStatsView()
-                .tabItem {
-                    Label("Artists", systemImage: "music.mic")
-                }
+                .tabItem { Label("Artists", systemImage: "music.mic") }
+                .tag(2)
 
             WorldRankingsView()
-                .tabItem {
-                    Label("World", systemImage: "globe")
-                }
+                .tabItem { Label("World", systemImage: "globe") }
+                .tag(3)
 
             SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(4)
         }
         .tint(.indigo)
         .preferredColorScheme(.dark)
+        .onAppear {
+            if !hasCompletedOnboarding { showOnboarding = true }
+        }
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .driftOpenHistory)) { _ in
+            selectedTab = 1
+        }
     }
 }

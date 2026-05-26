@@ -81,8 +81,11 @@ struct HomeView: View {
 
                     // MARK: Weekly chart
                     if !recentSessions.isEmpty {
-                        WeeklyOnsetChart(sessions: recentSessions)
+                        WeeklyOnsetChart(sessions: sessions)
                     }
+
+                    // MARK: Tonight's Drift
+                    TonightsDriftCard(confirmedSessionCount: sessions.count)
 
                     // MARK: Best sleeper card
                     if let best = bestSleeper {
@@ -180,7 +183,7 @@ struct OnsetRingCard: View {
                     Text(onsetText)
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Text("avg onset")
+                    Text("avg onset (7 nights)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -188,19 +191,22 @@ struct OnsetRingCard: View {
 
             // Last night's stats
             if let session = lastSession {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     StatPill(
                         icon: "moon.zzz",
                         label: "Last night",
                         value: "\(Int(session.onsetMinutes))m"
                     )
-                    if let media = session.mediaSnapshot {
-                        StatPill(
-                            icon: "music.note",
-                            label: "Paused",
-                            value: media.appDisplayName
-                        )
-                    }
+                    StatPill(
+                        icon: "music.note",
+                        label: "Paused",
+                        value: session.mediaSnapshot?.appDisplayName ?? "Silence 🌙"
+                    )
+                    StatPill(
+                        icon: "clock",
+                        label: "Asleep at",
+                        value: session.sleepOnsetTime.formatted(date: .omitted, time: .shortened)
+                    )
                 }
             } else {
                 Text("No sessions recorded yet")
@@ -216,14 +222,32 @@ struct OnsetRingCard: View {
 
 // MARK: - Weekly Onset Chart
 
+private struct DaySlot: Identifiable {
+    let id: Int  // days ago (0 = today)
+    let date: Date
+    let session: SleepSession?
+}
+
 struct WeeklyOnsetChart: View {
     let sessions: [SleepSession]
+
+    @State private var selectedSlot: DaySlot? = nil
 
     private var maxOnset: Double {
         sessions.map(\.onsetMinutes).max() ?? 60
     }
 
-    private let dayLetters = ["M", "T", "W", "T", "F", "S", "S"]
+    private var daySlots: [DaySlot] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return (0..<7).reversed().map { daysAgo in
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            let session = sessions.first {
+                calendar.isDate($0.sleepOnsetTime, inSameDayAs: date)
+            }
+            return DaySlot(id: daysAgo, date: date, session: session)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -235,25 +259,80 @@ struct WeeklyOnsetChart: View {
                 .tracking(0.8)
 
             HStack(alignment: .bottom, spacing: 8) {
-                ForEach(Array(sessions.enumerated()), id: \.offset) { index, session in
+                ForEach(daySlots) { slot in
                     VStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(barColor(for: session.onsetMinutes))
-                            .frame(
-                                width: .infinity,
-                                height: max(12, CGFloat(session.onsetMinutes / maxOnset) * 60)
-                            )
-                        Text(dayLetter(for: session.sleepOnsetTime))
+                        if let session = slot.session {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(barColor(for: session.onsetMinutes))
+                                .frame(height: max(12, CGFloat(session.onsetMinutes / maxOnset) * 60))
+                                .frame(maxWidth: .infinity)
+                                .onTapGesture {
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                        selectedSlot = selectedSlot?.id == slot.id ? nil : slot
+                                    }
+                                }
+                        } else {
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(.secondary.opacity(0.2), lineWidth: 1)
+                                .frame(height: 12)
+                                .frame(maxWidth: .infinity)
+                        }
+                        Text(dayLetter(for: slot.date))
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(slot.session != nil ? .secondary : .tertiary)
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
             .frame(height: 76)
+
+            if let slot = selectedSlot, let session = slot.session {
+                barPopup(for: session)
+                    .transition(.scale(scale: 0.95, anchor: .top).combined(with: .opacity))
+            }
         }
         .padding()
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if selectedSlot != nil {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { selectedSlot = nil }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func barPopup(for session: SleepSession) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(session.sleepOnsetTime, format: .dateTime.weekday(.wide).day().month())
+                .font(.caption)
+                .fontWeight(.semibold)
+            HStack(spacing: 6) {
+                Text("Fell asleep in \(Int(session.onsetMinutes))m")
+                    .font(.caption)
+                    .foregroundStyle(.indigo)
+                    .fontWeight(.medium)
+                Text("·")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text(session.sleepOnsetTime, format: .dateTime.hour().minute())
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            if let media = session.mediaSnapshot {
+                Text(media.artistName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Label(friendlySleepStage(session.sleepStage), systemImage: "moon.zzz.fill")
+                .font(.caption2)
+                .foregroundStyle(.green)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func barColor(for onset: Double) -> Color {
@@ -264,6 +343,15 @@ struct WeeklyOnsetChart: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "E"
         return String(formatter.string(from: date).prefix(1))
+    }
+
+    private func friendlySleepStage(_ stage: String) -> String {
+        switch stage {
+        case "asleepCore":          return "Core sleep"
+        case "asleepDeep":          return "Deep sleep"
+        case "asleepREM":           return "REM sleep"
+        default:                    return "Sleep detected"
+        }
     }
 }
 
@@ -438,6 +526,8 @@ struct BedtimeTrackingCard: View {
     let onStart: () -> Void
     let onCancel: () -> Void
 
+    @State private var showCancelConfirm = false
+
     private var pendingBedTime: Date? {
         bedTimeInterval > 0 ? Date(timeIntervalSince1970: bedTimeInterval) : nil
     }
@@ -461,13 +551,23 @@ struct BedtimeTrackingCard: View {
 
                 Spacer()
 
-                Button("Cancel", action: onCancel)
+                Button("Cancel") { showCancelConfirm = true }
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding()
             .background(.indigo.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(.indigo.opacity(0.2), lineWidth: 0.5))
+            .confirmationDialog(
+                "Stop tracking?",
+                isPresented: $showCancelConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Stop tracking", role: .destructive) { onCancel() }
+                Button("Keep tracking", role: .cancel) {}
+            } message: {
+                Text("Your morning reminder will be cancelled.")
+            }
         } else {
             Button(action: onStart) {
                 HStack(spacing: 12) {
@@ -726,6 +826,7 @@ struct MorningLogSheet: View {
             qualityRating: ratingEnabled ? qualityRating : nil
         )
         ManualSleepLogger.cancel()
+        ManualSleepLogger.scheduleMorningSummary(artistName: nil, onsetMinutes: Double(onsetMinutes))
 
         insightText = computeInsight(newOnsetMinutes: Double(onsetMinutes))
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -794,5 +895,249 @@ struct MorningLogSheet: View {
             }
         }
         return streak
+    }
+}
+
+// MARK: - Tonight's Drift Card
+
+struct TonightsDriftCard: View {
+    let confirmedSessionCount: Int
+
+    @Query(
+        filter: #Predicate<ArtistStat> { $0.confirmedSessionCount > 0 },
+        sort: \ArtistStat.averageOnsetMinutes
+    ) private var artistStats: [ArtistStat]
+
+    @State private var globalAlternative: GlobalLeaderboardEntry? = nil
+    @State private var globalAlternativeRank: Int = 0
+    @State private var isFetchingGlobal = false
+
+    private static let threshold = 3
+
+    private var isEvening: Bool {
+        let h = Calendar.current.component(.hour, from: Date())
+        return h >= 18
+    }
+
+    // Artist with the lowest average onset minutes
+    private var personalBest: ArtistStat? { artistStats.first }
+
+    private var eveningGreeting: String {
+        Calendar.current.component(.hour, from: Date()) < 21 ? "Good evening" : "Good night"
+    }
+
+    private var knownNames: Set<String> {
+        Set(artistStats.map { $0.artistName.lowercased() })
+    }
+
+    var body: some View {
+        if isEvening {
+            if confirmedSessionCount < Self.threshold {
+                lockedCard
+            } else {
+                activeCard
+                    .task(id: confirmedSessionCount) {
+                        guard !isFetchingGlobal, globalAlternative == nil else { return }
+                        await fetchGlobalAlternative()
+                    }
+            }
+        }
+    }
+
+    // MARK: Locked state
+
+    private var lockedCard: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Label("Tonight's Drift", systemImage: "sparkles")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.indigo)
+                Spacer()
+            }
+
+            VStack(spacing: 12) {
+                Image(systemName: "moon.zzz")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.indigo.opacity(0.5))
+
+                VStack(spacing: 4) {
+                    let remaining = Self.threshold - confirmedSessionCount
+                    Text("Sleep \(remaining) more \(remaining == 1 ? "night" : "nights") to unlock")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .multilineTextAlignment(.center)
+                    Text("Tonight's Drift")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(0..<Self.threshold, id: \.self) { i in
+                        Circle()
+                            .fill(i < confirmedSessionCount ? Color.indigo : Color.secondary.opacity(0.2))
+                            .frame(width: 8, height: 8)
+                            .animation(.spring(response: 0.3), value: confirmedSessionCount)
+                    }
+                }
+
+                Text("\(confirmedSessionCount) of \(Self.threshold) nights recorded")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+        }
+        .padding()
+        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: Active state
+
+    private var activeCard: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Label("Tonight's Drift", systemImage: "sparkles")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.indigo)
+                Spacer()
+                Text(eveningGreeting)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            Divider().overlay(.secondary.opacity(0.2))
+
+            if let best = personalBest {
+                RecommendationRow(
+                    tag: "YOUR FASTEST",
+                    tagColor: .indigo,
+                    emoji: best.categoryEmoji,
+                    name: best.artistName,
+                    appName: best.appDisplayName,
+                    stat: "avg \(Int(best.averageOnsetMinutes))m onset",
+                    deepLinkURL: artistDeepLink(name: best.artistName, appBundleID: best.appBundleID)
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+
+            if personalBest != nil, let alt = globalAlternative {
+                Divider()
+                    .overlay(.secondary.opacity(0.12))
+                    .padding(.horizontal, 16)
+
+                RecommendationRow(
+                    tag: "TRY TONIGHT",
+                    tagColor: .purple,
+                    emoji: alt.categoryEmoji,
+                    name: alt.artistName,
+                    appName: alt.appDisplayName,
+                    stat: "#\(globalAlternativeRank) on world chart",
+                    deepLinkURL: artistDeepLink(name: alt.artistName, appBundleID: alt.appBundleID)
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+        }
+        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: Helpers
+
+    private func artistDeepLink(name: String, appBundleID: String) -> URL? {
+        guard let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        switch appBundleID {
+        case "com.spotify.client":
+            return URL(string: "spotify:search:\(encoded)")
+        case "com.apple.podcasts":
+            return URL(string: "https://podcasts.apple.com/search?term=\(encoded)")
+        case "com.apple.Music":
+            return URL(string: "https://music.apple.com/search?term=\(encoded)")
+        default:
+            return URL(string: "https://music.apple.com/search?term=\(encoded)")
+        }
+    }
+
+    private func fetchGlobalAlternative() async {
+        isFetchingGlobal = true
+        let known = knownNames
+        for category in [GlobalSyncService.LeaderboardCategory.artists, .podcasts] {
+            guard let entries = try? await GlobalSyncService.shared.fetchLeaderboard(category: category) else { continue }
+            for (i, entry) in entries.enumerated() {
+                if !known.contains(entry.artistName.lowercased()) {
+                    globalAlternative = entry
+                    globalAlternativeRank = i + 1
+                    isFetchingGlobal = false
+                    return
+                }
+            }
+        }
+        isFetchingGlobal = false
+    }
+}
+
+// MARK: - Recommendation Row
+
+struct RecommendationRow: View {
+    let tag: String
+    let tagColor: Color
+    let emoji: String
+    let name: String
+    let appName: String
+    let stat: String
+    let deepLinkURL: URL?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(tagColor.opacity(0.12))
+                .frame(width: 44, height: 44)
+                .overlay {
+                    Text(emoji)
+                        .font(.title3)
+                }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(tag)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(tagColor)
+                    .tracking(0.4)
+                Text(name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                Text("\(appName) · \(stat)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if let url = deepLinkURL {
+                Button {
+                    #if os(iOS)
+                    UIApplication.shared.open(url)
+                    #else
+                    NSWorkspace.shared.open(url)
+                    #endif
+                } label: {
+                    Text("Open")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(tagColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(tagColor.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }

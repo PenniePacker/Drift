@@ -6,11 +6,14 @@
 
 import SwiftUI
 import SwiftData
+#if os(iOS)
+import UIKit
+#endif
 
 struct HistoryView: View {
 
     @Query(
-        filter: #Predicate<SleepSession> { $0.isConfirmed == true },
+        filter: #Predicate<SleepSession> { $0.isConfirmed == true && $0.onsetMinutes > 0 },
         sort: \SleepSession.sleepOnsetTime,
         order: .reverse
     ) private var sessions: [SleepSession]
@@ -113,10 +116,26 @@ struct SessionCard: View {
                 MediaDetailBlock(media: media)
                     .padding(14)
             } else {
-                Text("No media playing")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .padding(14)
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.secondary.opacity(0.08))
+                        .frame(width: 40, height: 40)
+                        .overlay {
+                            Text("🌙")
+                                .font(.title3)
+                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Fell asleep to silence")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                        Text("No media was playing")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(14)
             }
 
             // Sleep stage badge + quality rating
@@ -175,97 +194,103 @@ struct MediaDetailBlock: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Track row
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.indigo.opacity(0.15))
-                    .frame(width: 40, height: 40)
-                    .overlay {
-                        Image(systemName: trackIcon(for: media.appBundleID))
-                            .foregroundStyle(.indigo)
-                    }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(media.trackTitle)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                    Text(media.artistName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+            // Track row — tapping opens artist/show in the source app
+            Button {
+                if let url = artistDeepLink(name: media.artistName, appBundleID: media.appBundleID) {
+                    #if os(iOS)
+                    UIApplication.shared.open(url)
+                    #else
+                    NSWorkspace.shared.open(url)
+                    #endif
                 }
+            } label: {
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.indigo.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                        .overlay {
+                            Image(systemName: trackIcon(for: media.appBundleID))
+                                .foregroundStyle(.indigo)
+                        }
 
-                Spacer()
-
-                // Position in track
-                VStack(alignment: .trailing, spacing: 2) {
-                    if media.isLiveStream {
-                        Text("Live")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(media.trackTitle)
                             .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.orange)
-                    } else if let elapsed = media.elapsedSeconds {
-                        Text(formatSeconds(elapsed))
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.indigo)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text(media.artistName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Text("into track")
+
+                    Spacer()
+
+                    // Position in track
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if media.isLiveStream {
+                            Text("Live")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.orange)
+                        } else if let elapsed = media.elapsedSeconds {
+                            Text(formatSeconds(elapsed))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.indigo)
+                        }
+                        Text("into track")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Image(systemName: "arrow.up.right")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.indigo.opacity(0.5))
                 }
             }
+            .buttonStyle(.plain)
 
-            // Progress bar
+            // Progress bar — fill end and "paused here" label are the same point
             if media.isLiveStream {
-                HStack {
-                    Rectangle()
+                HStack(spacing: 6) {
+                    Capsule()
                         .fill(.secondary.opacity(0.2))
                         .frame(height: 3)
-                        .clipShape(Capsule())
                     Text("Live stream · no position tracked")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
-            } else if let fraction = progressFraction {
-                VStack(alignment: .leading, spacing: 4) {
+            } else if let frac = progressFraction {
+                VStack(spacing: 6) {
                     GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(.secondary.opacity(0.15))
-                                .frame(height: 4)
-                            Capsule()
-                                .fill(.indigo)
-                                .frame(width: geo.size.width * fraction, height: 4)
+                        let barW  = geo.size.width
+                        let fillW = barW * frac
+                        let lw: CGFloat = 72
+                        let labelX = min(max(fillW - lw / 2, 0), barW - lw)
+                        ZStack(alignment: .topLeading) {
+                            Capsule().fill(.secondary.opacity(0.15))
+                                .frame(width: barW, height: 4)
+                            Capsule().fill(.indigo)
+                                .frame(width: max(fillW, 0), height: 4)
+                            Circle().fill(.indigo)
+                                .frame(width: 8, height: 8)
+                                .offset(x: max(fillW - 4, 0), y: -2)
+                            Text("paused here")
+                                .font(.caption2).foregroundStyle(.indigo)
+                                .frame(width: lw, alignment: .center)
+                                .offset(x: labelX, y: 12)
                         }
                     }
-                    .frame(height: 4)
-
+                    .frame(height: 28)
                     HStack {
-                        Text("0:00")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        Text("0:00").font(.caption2).foregroundStyle(.tertiary)
                         Spacer()
-                        Text("↑ paused here")
-                            .font(.caption2)
-                            .foregroundStyle(.indigo)
-                        Spacer()
-                        if let duration = media.durationSeconds {
-                            Text(formatSeconds(duration))
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                        if let dur = media.durationSeconds {
+                            Text(formatSeconds(dur)).font(.caption2).foregroundStyle(.tertiary)
                         }
                     }
-                }
-            }
-
-            // Deep link
-            if let uri = media.deepLinkURI, let url = URL(string: uri) {
-                Link(destination: url) {
-                    Label("Open in \(media.appDisplayName)", systemImage: "arrow.up.right.square")
-                        .font(.caption)
-                        .foregroundStyle(.indigo)
                 }
             }
         }
@@ -297,6 +322,16 @@ struct MediaDetailBlock: View {
         case "com.apple.podcasts":      return "mic.fill"
         case "com.google.ios.youtube":  return "play.rectangle"
         default:                        return "music.note"
+        }
+    }
+
+    private func artistDeepLink(name: String, appBundleID: String) -> URL? {
+        guard let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        switch appBundleID {
+        case "com.spotify.client":      return URL(string: "spotify:search:\(encoded)")
+        case "com.apple.podcasts":      return URL(string: "https://podcasts.apple.com/search?term=\(encoded)")
+        case "com.apple.Music":         return URL(string: "https://music.apple.com/search?term=\(encoded)")
+        default:                        return URL(string: "https://music.apple.com/search?term=\(encoded)")
         }
     }
 }

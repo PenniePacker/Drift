@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var healthKitStatus: HKAuthorizationStatus = .notDetermined
     @State private var showDeleteConfirm = false
     @State private var showContributionConfirm = false
+    @State private var showOnboarding = false
     #if DEBUG
     @State private var debugTapCount = 0
     @State private var debugMenuVisible = false
@@ -107,6 +108,13 @@ struct SettingsView: View {
 
                 // MARK: About
                 Section("About") {
+                    Button {
+                        showOnboarding = true
+                    } label: {
+                        Label("View introduction", systemImage: "sparkles")
+                    }
+                    .foregroundStyle(.indigo)
+
                     LabeledContent("Version", value: Bundle.main.shortVersionString)
                     #if DEBUG
                         .onTapGesture {
@@ -158,12 +166,12 @@ struct SettingsView: View {
                     Button(role: .destructive) {
                         showDeleteConfirm = true
                     } label: {
-                        Label("Delete all sleep data", systemImage: "trash")
+                        Label("Reset my sleep data", systemImage: "trash")
                     }
                 } header: {
                     Text("Data")
                 } footer: {
-                    Text("Deletes all local sessions, artist stats, and track stats. Cannot be undone.")
+                    Text("Permanently removes all sleep sessions, artist stats, and track history from this device. This cannot be undone.")
                 }
             }
             .navigationTitle("Settings")
@@ -195,6 +203,9 @@ struct SettingsView: View {
                 Text("This will replace all existing data with realistic fake sessions for 5 artists.")
             }
             #endif
+            .sheet(isPresented: $showOnboarding) {
+                OnboardingView()
+            }
             .alert("Opt out of world rankings?", isPresented: $showContributionConfirm) {
                 Button("Opt out", role: .destructive) { leaderboardOptedIn = false }
                 Button("Keep contributing", role: .cancel) { leaderboardOptedIn = true }
