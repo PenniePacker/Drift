@@ -438,6 +438,7 @@ struct CardStatBox: View {
 
 // MARK: - Image export + sharing
 
+#if os(iOS)
 @MainActor
 struct ShareCardExporter {
 
@@ -508,6 +509,7 @@ struct ShareCardExporter {
         UIApplication.shared.open(url)
     }
 }
+#endif
 
 // MARK: - Share sheet SwiftUI wrapper
 
@@ -567,7 +569,9 @@ struct ShareCardSheet: View {
                                height: selectedFormat.previewSize.height)
                         .tag(2)
                 }
+                #if os(iOS)
                 .tabViewStyle(.page)
+                #endif
                 .frame(height: selectedFormat.previewSize.height + 40)
 
                 // Share buttons
@@ -602,9 +606,17 @@ struct ShareCardSheet: View {
             }
             .padding(.top)
             .navigationTitle("Share your sleep")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: {
+                    #if os(iOS)
+                    return ToolbarItemPlacement.topBarTrailing
+                    #else
+                    return ToolbarItemPlacement.automatic
+                    #endif
+                }()) {
                     Button("Done") { dismiss() }
                 }
             }
@@ -620,6 +632,7 @@ struct ShareCardSheet: View {
     }
 
     private func shareCurrentCard(toInstagram: Bool) {
+        #if os(iOS)
         guard let image = ShareCardExporter.render(
             type: currentType,
             format: selectedFormat,
@@ -634,5 +647,6 @@ struct ShareCardSheet: View {
         } else {
             ShareCardExporter.share(image: image)
         }
+        #endif
     }
 }

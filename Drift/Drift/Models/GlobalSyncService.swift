@@ -95,12 +95,13 @@ extension GlobalLeaderboardEntry: Decodable {
 
 // MARK: - GlobalSyncService
 
-actor GlobalSyncService {
+@MainActor
+final class GlobalSyncService {
 
     static let shared = GlobalSyncService()
 
-    nonisolated private let baseURL = URL(string: Config.supabaseBaseURL)!
-    nonisolated private let anonKey = Config.supabaseAnonKey
+    private let baseURL = URL(string: Config.supabaseBaseURL)!
+    private let anonKey = Config.supabaseAnonKey
 
     // Random UUID stored in Keychain. Never changes. Not linked to any identity.
     private var contributionToken: String {
@@ -115,12 +116,10 @@ actor GlobalSyncService {
     /// Upload any artist stats that have changed since last sync.
     /// Called automatically after each new sleep session.
     func syncIfNeeded() async {
-        let store = await DriftStore.shared
-        guard let artists = try? await store.topArtists() else { return }
+        guard let artists = try? DriftStore.shared.topArtists() else { return }
 
-            // Only sync artists that have new sessions since last contribution upload
         for artist in artists {
-            let contribution = await lastContribution(for: artist)
+            let contribution = lastContribution(for: artist)
             if contribution == nil || artist.confirmedSessionCount > contribution!.submittedSessionCount {
                 await uploadContribution(for: artist)
             }
@@ -151,7 +150,7 @@ actor GlobalSyncService {
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode == 201 || http.statusCode == 200 {
-                await recordContribution(for: artist)
+                recordContribution(for: artist)
             }
         } catch {
             print("Sync failed for \(artist.artistName): \(error)")
@@ -182,7 +181,6 @@ actor GlobalSyncService {
 
     // MARK: - Helpers
 
-    @MainActor
     private func lastContribution(for artist: ArtistStat) -> GlobalContribution? {
         let name = artist.artistName
         let bundle = artist.appBundleID
@@ -192,7 +190,6 @@ actor GlobalSyncService {
         return try? DriftStore.shared.context.fetch(descriptor).first
     }
 
-    @MainActor
     private func recordContribution(for artist: ArtistStat) {
         let contribution = GlobalContribution(artistStat: artist)
         DriftStore.shared.context.insert(contribution)

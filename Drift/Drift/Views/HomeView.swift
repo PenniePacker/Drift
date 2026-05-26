@@ -542,7 +542,13 @@ struct MorningLogSheet: View {
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showInsight)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: {
+                    #if os(iOS)
+                    return ToolbarItemPlacement.topBarTrailing
+                    #else
+                    return ToolbarItemPlacement.automatic
+                    #endif
+                }()) {
                     Button {
                         dismissTask?.cancel()
                         if !showInsight { ManualSleepLogger.cancel() }
@@ -600,7 +606,11 @@ struct MorningLogSheet: View {
                     in: bedTime...(bedTime.addingTimeInterval(12 * 3600)),
                     displayedComponents: [.hourAndMinute]
                 )
+                #if os(iOS)
                 .datePickerStyle(.wheel)
+                #else
+                .datePickerStyle(.graphical)
+                #endif
                 .labelsHidden()
                 .frame(maxWidth: .infinity)
             }
