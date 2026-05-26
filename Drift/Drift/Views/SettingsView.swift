@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage("winddown_enabled") private var winddownEnabled = false
     @AppStorage("winddown_time") private var winddownTime = 22 * 60 + 30 // 10:30 pm in minutes from midnight
     @AppStorage("smart_alarm_enabled") private var smartAlarmEnabled = false
+    @AppStorage("morning_checkin_rating_enabled") private var ratingEnabled = true
 
     @State private var healthKitStatus: HKAuthorizationStatus = .notDetermined
     @State private var showDeleteConfirm = false
@@ -59,6 +60,16 @@ struct SettingsView: View {
                     Text("Wind-down routine")
                 } footer: {
                     Text("Drift will play your best sleeper at the selected time and fade volume before sleep is detected.")
+                }
+
+                // MARK: Morning check-in
+                Section {
+                    Toggle("Sleep quality rating", isOn: $ratingEnabled)
+                        .tint(.indigo)
+                } header: {
+                    Text("Morning check-in")
+                } footer: {
+                    Text("When enabled, the morning log sheet asks you to rate your sleep on a 1–5 moon scale.")
                 }
 
                 // MARK: World rankings

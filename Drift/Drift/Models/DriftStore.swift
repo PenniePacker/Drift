@@ -39,7 +39,8 @@ final class DriftStore {
         bedTime: Date,
         sleepOnsetTime: Date,
         sleepStage: String,
-        mediaSnapshot: MediaSnapshot?
+        mediaSnapshot: MediaSnapshot?,
+        qualityRating: Int? = nil
     ) {
         let session = SleepSession(
             bedTime: bedTime,
@@ -47,6 +48,7 @@ final class DriftStore {
             sleepStage: sleepStage,
             mediaSnapshot: mediaSnapshot
         )
+        session.qualityRating = qualityRating
         context.insert(session)
 
         if let media = mediaSnapshot {

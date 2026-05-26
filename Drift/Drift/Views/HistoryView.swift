@@ -119,12 +119,16 @@ struct SessionCard: View {
                     .padding(14)
             }
 
-            // Sleep stage badge
+            // Sleep stage badge + quality rating
             HStack {
                 Label(friendlySleepStage(session.sleepStage), systemImage: "moon.zzz.fill")
                     .font(.caption)
                     .foregroundStyle(.green)
                 Spacer()
+                if let rating = session.qualityRating {
+                    Text(String(repeating: "🌙", count: rating))
+                        .font(.caption)
+                }
                 Text(session.sleepOnsetTime, format: .dateTime.hour().minute())
                     .font(.caption)
                     .foregroundStyle(.secondary)

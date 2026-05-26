@@ -507,6 +507,8 @@ struct MorningLogSheet: View {
     let bedTime: Date
     @Environment(\.dismiss) private var dismiss
     @State private var selectedOnsetTime: Date
+    @AppStorage("morning_checkin_rating_enabled") private var ratingEnabled = true
+    @State private var qualityRating: Int? = nil
 
     init(bedTime: Date) {
         self.bedTime = bedTime
@@ -565,6 +567,33 @@ struct MorningLogSheet: View {
                 .padding()
                 .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
 
+                // Moon quality scale
+                if ratingEnabled {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("How was your sleep?")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+
+                        HStack(spacing: 0) {
+                            ForEach(1...5, id: \.self) { i in
+                                Button {
+                                    qualityRating = qualityRating == i ? nil : i
+                                } label: {
+                                    Image(systemName: i <= (qualityRating ?? 0) ? "moon.fill" : "moon")
+                                        .font(.title)
+                                        .foregroundStyle(i <= (qualityRating ?? 0) ? .indigo : .secondary.opacity(0.3))
+                                        .frame(maxWidth: .infinity)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: qualityRating)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+                }
+
                 // Onset preview
                 HStack {
                     Image(systemName: "clock.fill")
@@ -591,7 +620,8 @@ struct MorningLogSheet: View {
                                 bedTime: bedTime,
                                 sleepOnsetTime: selectedOnsetTime,
                                 sleepStage: "asleepUnspecified",
-                                mediaSnapshot: nil
+                                mediaSnapshot: nil,
+                                qualityRating: ratingEnabled ? qualityRating : nil
                             )
                         }
                         ManualSleepLogger.cancel()

@@ -41,6 +41,10 @@ final class SleepSession {
     // Future use: could require manual confirmation or Watch corroboration
     var isConfirmed: Bool
 
+    // 1–5 sleep quality entered in the morning log sheet. Nil if feature is
+    // disabled or user skipped the rating.
+    var qualityRating: Int?
+
     init(
         bedTime: Date,
         sleepOnsetTime: Date,
