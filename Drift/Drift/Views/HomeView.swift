@@ -506,14 +506,17 @@ struct BedtimeTrackingCard: View {
 struct MorningLogSheet: View {
     let bedTime: Date
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedOnsetTime: Date
     @AppStorage("morning_checkin_rating_enabled") private var ratingEnabled = true
     @State private var qualityRating: Int? = nil
+    @State private var showInsight = false
+    @State private var insightText = ""
+    @State private var dismissTask: Task<Void, Never>? = nil
 
     init(bedTime: Date) {
         self.bedTime = bedTime
-        let defaultOnset = bedTime.addingTimeInterval(30 * 60)
-        _selectedOnsetTime = State(initialValue: defaultOnset)
+        _selectedOnsetTime = State(initialValue: bedTime.addingTimeInterval(30 * 60))
     }
 
     private var onsetMinutes: Int {
@@ -522,134 +525,27 @@ struct MorningLogSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 28) {
-
-                // Header
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "moon.fill")
-                            .foregroundStyle(.indigo)
-                        Image(systemName: "arrow.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "sun.max.fill")
-                            .foregroundStyle(.yellow)
-                    }
-                    .font(.title2)
-
-                    Text("Good morning")
-                        .font(.title2)
-                        .fontWeight(.bold)
-
-                    Text("You went to bed at \(bedTime.formatted(date: .omitted, time: .shortened))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-
-                // Time picker
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("When did you fall asleep?")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    DatePicker(
-                        "",
-                        selection: $selectedOnsetTime,
-                        in: bedTime...(bedTime.addingTimeInterval(12 * 3600)),
-                        displayedComponents: [.hourAndMinute]
-                    )
-                    .datePickerStyle(.wheel)
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                }
-                .padding()
-                .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-
-                // Moon quality scale
-                if ratingEnabled {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("How was your sleep?")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-
-                        HStack(spacing: 0) {
-                            ForEach(1...5, id: \.self) { i in
-                                Button {
-                                    qualityRating = qualityRating == i ? nil : i
-                                } label: {
-                                    Image(systemName: i <= (qualityRating ?? 0) ? "moon.fill" : "moon")
-                                        .font(.title)
-                                        .foregroundStyle(i <= (qualityRating ?? 0) ? .indigo : .secondary.opacity(0.3))
-                                        .frame(maxWidth: .infinity)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: qualityRating)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-                }
-
-                // Onset preview
-                HStack {
-                    Image(systemName: "clock.fill")
-                        .font(.caption)
-                        .foregroundStyle(.indigo)
-                    Text("\(selectedOnsetTime.formatted(date: .omitted, time: .shortened))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(onsetMinutes)m after bed")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.indigo)
-                }
-                .padding(.horizontal, 4)
-
-                Spacer()
-
-                // Actions
-                VStack(spacing: 10) {
-                    Button {
-                        Task { @MainActor in
-                            DriftStore.shared.recordSleepSession(
-                                bedTime: bedTime,
-                                sleepOnsetTime: selectedOnsetTime,
-                                sleepStage: "asleepUnspecified",
-                                mediaSnapshot: nil,
-                                qualityRating: ratingEnabled ? qualityRating : nil
-                            )
-                        }
-                        ManualSleepLogger.cancel()
-                        dismiss()
-                    } label: {
-                        Text("Log it")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(.indigo, in: RoundedRectangle(cornerRadius: 14))
-                    }
-
-                    Button("Skip for now") {
-                        ManualSleepLogger.cancel()
-                        dismiss()
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            ZStack {
+                if showInsight {
+                    insightView
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.85).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                } else {
+                    formView
+                        .transition(.asymmetric(
+                            insertion: .opacity,
+                            removal: .scale(scale: 0.9).combined(with: .opacity)
+                        ))
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showInsight)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        ManualSleepLogger.cancel()
+                        dismissTask?.cancel()
+                        if !showInsight { ManualSleepLogger.cancel() }
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -661,5 +557,232 @@ struct MorningLogSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
+        .onDisappear { dismissTask?.cancel() }
+    }
+
+    // MARK: Form
+
+    @ViewBuilder
+    private var formView: some View {
+        VStack(spacing: 28) {
+
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "moon.fill")
+                        .foregroundStyle(.indigo)
+                    Image(systemName: "arrow.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "sun.max.fill")
+                        .foregroundStyle(.yellow)
+                }
+                .font(.title2)
+
+                Text("Good morning")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("You went to bed at \(bedTime.formatted(date: .omitted, time: .shortened))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("When did you fall asleep?")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                DatePicker(
+                    "",
+                    selection: $selectedOnsetTime,
+                    in: bedTime...(bedTime.addingTimeInterval(12 * 3600)),
+                    displayedComponents: [.hourAndMinute]
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+            }
+            .padding()
+            .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+
+            if ratingEnabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("How was your sleep?")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    HStack(spacing: 0) {
+                        ForEach(1...5, id: \.self) { i in
+                            Button {
+                                qualityRating = qualityRating == i ? nil : i
+                            } label: {
+                                Image(systemName: i <= (qualityRating ?? 0) ? "moon.fill" : "moon")
+                                    .font(.title)
+                                    .foregroundStyle(i <= (qualityRating ?? 0) ? .indigo : .secondary.opacity(0.3))
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: qualityRating)
+                        }
+                    }
+                }
+                .padding()
+                .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+            }
+
+            HStack {
+                Image(systemName: "clock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.indigo)
+                Text("\(selectedOnsetTime.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(onsetMinutes)m after bed")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.indigo)
+            }
+            .padding(.horizontal, 4)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button { logAndShowInsight() } label: {
+                    Text("Log it")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(.indigo, in: RoundedRectangle(cornerRadius: 14))
+                }
+
+                Button("Skip for now") {
+                    ManualSleepLogger.cancel()
+                    dismiss()
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 24)
+    }
+
+    // MARK: Insight card
+
+    @ViewBuilder
+    private var insightView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(.indigo)
+                .symbolEffect(.bounce, options: .nonRepeating, value: showInsight)
+
+            Text(insightText)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Text("Tap to dismiss")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            dismissTask?.cancel()
+            dismiss()
+        }
+    }
+
+    // MARK: Helpers
+
+    private func logAndShowInsight() {
+        DriftStore.shared.recordSleepSession(
+            bedTime: bedTime,
+            sleepOnsetTime: selectedOnsetTime,
+            sleepStage: "asleepUnspecified",
+            mediaSnapshot: nil,
+            qualityRating: ratingEnabled ? qualityRating : nil
+        )
+        ManualSleepLogger.cancel()
+
+        insightText = computeInsight(newOnsetMinutes: Double(onsetMinutes))
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            showInsight = true
+        }
+
+        dismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { dismiss() }
+        }
+    }
+
+    private func computeInsight(newOnsetMinutes: Double) -> String {
+        let descriptor = FetchDescriptor<SleepSession>(
+            predicate: #Predicate { $0.isConfirmed == true },
+            sortBy: [SortDescriptor(\.sleepOnsetTime, order: .reverse)]
+        )
+        let sessions = (try? modelContext.fetch(descriptor)) ?? []
+
+        // Streak: ≥ 3 consecutive nights
+        let streak = consecutiveNightStreak(in: sessions)
+        if streak >= 3 {
+            return "You're on a \(streak) night streak 🔥"
+        }
+
+        // Best this week (needs ≥ 2 sessions this week to be meaningful)
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        let thisWeek = sessions.filter { $0.sleepOnsetTime > weekAgo }
+        if thisWeek.count >= 2,
+           let fastest = thisWeek.map(\.onsetMinutes).min(),
+           newOnsetMinutes <= fastest + 0.1 {
+            return "Your best night this week 🏆"
+        }
+
+        // Faster than personal average (prior sessions only, needs ≥ 2)
+        let prior = Array(sessions.dropFirst())
+        if prior.count >= 2 {
+            let avg = prior.map(\.onsetMinutes).reduce(0, +) / Double(prior.count)
+            let diff = avg - newOnsetMinutes
+            if diff >= 5 {
+                return "You fell asleep \(Int(diff.rounded())) minutes faster than your average 🌙"
+            }
+        }
+
+        // First ever session
+        if sessions.count <= 1 {
+            return "First session logged — the journey begins 🌙"
+        }
+
+        return "Session logged — sleep well tonight 🌙"
+    }
+
+    private func consecutiveNightStreak(in sessions: [SleepSession]) -> Int {
+        let calendar = Calendar.current
+        guard !sessions.isEmpty else { return 0 }
+        var streak = 1
+        var prevDay = calendar.startOfDay(for: sessions[0].sleepOnsetTime)
+        for session in sessions.dropFirst() {
+            let day = calendar.startOfDay(for: session.sleepOnsetTime)
+            let diff = calendar.dateComponents([.day], from: day, to: prevDay).day ?? 999
+            if diff == 1 {
+                streak += 1
+                prevDay = day
+            } else if diff > 1 {
+                break
+            }
+        }
+        return streak
     }
 }
