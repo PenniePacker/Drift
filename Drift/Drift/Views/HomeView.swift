@@ -3,6 +3,9 @@
 
 import SwiftUI
 import SwiftData
+#if os(iOS)
+import UIKit
+#endif
 
 struct HomeView: View {
 
@@ -37,6 +40,19 @@ struct HomeView: View {
             .max(by: { $0.driftScore < $1.driftScore })
     }
 
+    @AppStorage("drift_manual_bedtime") private var bedTimeInterval: Double = 0
+    @State private var showMorningLog = false
+    @State private var morningLogBedTime: Date? = nil
+    @Environment(\.scenePhase) private var scenePhase
+
+    private func checkForMorningLog() {
+        if ManualSleepLogger.shouldShowMorningLog,
+           let bedTime = ManualSleepLogger.pendingBedTime {
+            morningLogBedTime = bedTime
+            showMorningLog = true
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -44,6 +60,18 @@ struct HomeView: View {
 
                     // MARK: Detection status card
                     DetectionStatusCard(lastSession: lastSession)
+
+                    // MARK: Bedtime tracking
+                    BedtimeTrackingCard(
+                        bedTimeInterval: bedTimeInterval,
+                        onStart: {
+                            ManualSleepLogger.startTracking()
+                            #if os(iOS)
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            #endif
+                        },
+                        onCancel: { ManualSleepLogger.cancel() }
+                    )
 
                     // MARK: Onset ring + stats
                     OnsetRingCard(
@@ -77,6 +105,15 @@ struct HomeView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
+            .onAppear { checkForMorningLog() }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { checkForMorningLog() }
+            }
+            .sheet(isPresented: $showMorningLog) {
+                if let bedTime = morningLogBedTime {
+                    MorningLogSheet(bedTime: bedTime)
+                }
+            }
         }
     }
 }
@@ -391,5 +428,208 @@ struct StatCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Bedtime Tracking Card
+
+struct BedtimeTrackingCard: View {
+    let bedTimeInterval: Double
+    let onStart: () -> Void
+    let onCancel: () -> Void
+
+    private var pendingBedTime: Date? {
+        bedTimeInterval > 0 ? Date(timeIntervalSince1970: bedTimeInterval) : nil
+    }
+
+    var body: some View {
+        if let bedTime = pendingBedTime {
+            HStack(spacing: 12) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.title3)
+                    .foregroundStyle(.indigo)
+                    .frame(width: 36)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Sleep tracking active")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text("Bed at \(bedTime.formatted(date: .omitted, time: .shortened)) · Reminder at 8:00 AM")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button("Cancel", action: onCancel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(.indigo.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.indigo.opacity(0.2), lineWidth: 0.5))
+        } else {
+            Button(action: onStart) {
+                HStack(spacing: 12) {
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.title3)
+                        .foregroundStyle(.indigo)
+                        .frame(width: 36)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("I'm going to bed 🌙")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        Text("Drift will remind you at 8am to log your onset time")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding()
+                .background(.indigo.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(.indigo.opacity(0.12), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+// MARK: - Morning Log Sheet
+
+struct MorningLogSheet: View {
+    let bedTime: Date
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedOnsetTime: Date
+
+    init(bedTime: Date) {
+        self.bedTime = bedTime
+        let defaultOnset = bedTime.addingTimeInterval(30 * 60)
+        _selectedOnsetTime = State(initialValue: defaultOnset)
+    }
+
+    private var onsetMinutes: Int {
+        max(0, Int(selectedOnsetTime.timeIntervalSince(bedTime) / 60))
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 28) {
+
+                // Header
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "moon.fill")
+                            .foregroundStyle(.indigo)
+                        Image(systemName: "arrow.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "sun.max.fill")
+                            .foregroundStyle(.yellow)
+                    }
+                    .font(.title2)
+
+                    Text("Good morning")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    Text("You went to bed at \(bedTime.formatted(date: .omitted, time: .shortened))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+
+                // Time picker
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("When did you fall asleep?")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    DatePicker(
+                        "",
+                        selection: $selectedOnsetTime,
+                        in: bedTime...(bedTime.addingTimeInterval(12 * 3600)),
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity)
+                }
+                .padding()
+                .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+
+                // Onset preview
+                HStack {
+                    Image(systemName: "clock.fill")
+                        .font(.caption)
+                        .foregroundStyle(.indigo)
+                    Text("\(selectedOnsetTime.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(onsetMinutes)m after bed")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.indigo)
+                }
+                .padding(.horizontal, 4)
+
+                Spacer()
+
+                // Actions
+                VStack(spacing: 10) {
+                    Button {
+                        Task { @MainActor in
+                            DriftStore.shared.recordSleepSession(
+                                bedTime: bedTime,
+                                sleepOnsetTime: selectedOnsetTime,
+                                sleepStage: "asleepUnspecified",
+                                mediaSnapshot: nil
+                            )
+                        }
+                        ManualSleepLogger.cancel()
+                        dismiss()
+                    } label: {
+                        Text("Log it")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(.indigo, in: RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    Button("Skip for now") {
+                        ManualSleepLogger.cancel()
+                        dismiss()
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        ManualSleepLogger.cancel()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.title3)
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }

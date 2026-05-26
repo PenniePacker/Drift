@@ -24,6 +24,7 @@ struct DriftApp: App {
                 #endif
                 .onAppear {
                     sleepObserver.start()
+                    ManualSleepLogger.requestNotificationPermission()
                 }
                 #if canImport(WatchConnectivity)
                 .onReceive(NotificationCenter.default.publisher(for: .watchSleepDetected)) { notification in
