@@ -193,7 +193,7 @@ struct OnsetRingCard: View {
                         NowPlayingPill(media: media)
                             .frame(maxWidth: .infinity)
                     } else {
-                        StatPill(icon: "moon.zzz", label: "", value: "Silence 🌙")
+                        StatPill(icon: "moon.zzz", label: "", value: "Silence")
                     }
                     StatPill(icon: "clock", label: "Asleep at",
                              value: session.sleepOnsetTime.formatted(date: .omitted, time: .shortened))
@@ -561,7 +561,7 @@ struct BedtimeTrackingCard: View {
                         .frame(width: 36)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("I'm going to bed 🌙")
+                        Text("I'm going to bed")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.primary)
@@ -856,16 +856,16 @@ struct MorningLogSheet: View {
             let avg = prior.map(\.onsetMinutes).reduce(0, +) / Double(prior.count)
             let diff = avg - newOnsetMinutes
             if diff >= 5 {
-                return "You drifted off \(Int(diff.rounded())) minutes faster than your average 🌙"
+                return "You drifted off \(Int(diff.rounded())) minutes faster than your average"
             }
         }
 
         // First ever session
         if sessions.count <= 1 {
-            return "First Drift logged — the journey begins 🌙"
+            return "First Drift logged — the journey begins"
         }
 
-        return "Drift logged — sleep well tonight 🌙"
+        return "Drift logged — sleep well tonight"
     }
 
     private func consecutiveNightStreak(in sessions: [SleepSession]) -> Int {

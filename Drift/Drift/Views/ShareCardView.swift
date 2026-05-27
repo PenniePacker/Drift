@@ -399,8 +399,11 @@ struct CardHeader: View {
                     .foregroundStyle(Color(red: 0.486, green: 0.557, blue: 0.941))
             }
             Spacer()
-            Text("🌙")
-                .font(.system(size: 20))
+            Image("DriftCrescent")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
         }
     }
 }

@@ -121,8 +121,9 @@ struct SessionCard: View {
                         .fill(.secondary.opacity(0.08))
                         .frame(width: 40, height: 40)
                         .overlay {
-                            Text("🌙")
+                            Image(systemName: "moon.zzz.fill")
                                 .font(.title3)
+                                .foregroundStyle(.secondary)
                         }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Fell asleep to silence")
@@ -145,8 +146,15 @@ struct SessionCard: View {
                     .foregroundStyle(.green)
                 Spacer()
                 if let rating = session.qualityRating {
-                    Text(String(repeating: "🌙", count: rating))
-                        .font(.caption)
+                    HStack(spacing: 2) {
+                        ForEach(0..<rating, id: \.self) { _ in
+                            Image("DriftCrescent")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 14, height: 14)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                    }
                 }
                 Text(session.sleepOnsetTime, format: .dateTime.hour().minute())
                     .font(.caption)
