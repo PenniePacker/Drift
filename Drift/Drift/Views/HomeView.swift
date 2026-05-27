@@ -161,23 +161,12 @@ struct OnsetRingCard: View {
                     .stroke(.secondary.opacity(0.15), lineWidth: 8)
                     .frame(width: 120, height: 120)
 
-                // AppIcon at 35% opacity behind arc
-                #if os(iOS)
-                if let icon = UIImage(named: "AppIcon") {
-                    Image(uiImage: icon)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 88, height: 88)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .opacity(0.35)
-                }
-                #endif
-
                 // Progress arc: full = 0m (best), empty = 30m+ (worst)
                 Circle()
                     .trim(from: 0, to: progressFraction)
                     .stroke(
-                        LinearGradient(colors: [.indigo, .purple], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        LinearGradient(colors: [.indigo, .purple],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .frame(width: 120, height: 120)
@@ -198,21 +187,16 @@ struct OnsetRingCard: View {
             // Last night's stats
             if let session = lastSession {
                 HStack(spacing: 8) {
-                    StatPill(
-                        icon: "moon.zzz",
-                        label: "Last night",
-                        value: "\(Int(session.onsetMinutes))m"
-                    )
-                    StatPill(
-                        icon: "music.note",
-                        label: "Paused",
-                        value: session.mediaSnapshot?.appDisplayName ?? "Silence 🌙"
-                    )
-                    StatPill(
-                        icon: "clock",
-                        label: "Asleep at",
-                        value: session.sleepOnsetTime.formatted(date: .omitted, time: .shortened)
-                    )
+                    StatPill(icon: "moon.zzz", label: "Last night",
+                             value: "\(Int(session.onsetMinutes))m")
+                    if let media = session.mediaSnapshot {
+                        NowPlayingPill(media: media)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        StatPill(icon: "moon.zzz", label: "", value: "Silence 🌙")
+                    }
+                    StatPill(icon: "clock", label: "Asleep at",
+                             value: session.sleepOnsetTime.formatted(date: .omitted, time: .shortened))
                 }
             } else {
                 Text("No Drifts recorded yet")
@@ -268,6 +252,9 @@ struct WeeklyOnsetChart: View {
                 ForEach(daySlots) { slot in
                     VStack(spacing: 4) {
                         if let session = slot.session {
+                            Text("\(Int(session.onsetMinutes))m")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(barColor(for: session.onsetMinutes))
                                 .frame(height: max(12, CGFloat(session.onsetMinutes / maxOnset) * 60))
@@ -290,7 +277,7 @@ struct WeeklyOnsetChart: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .frame(height: 76)
+            .frame(height: 90)
 
             if let slot = selectedSlot, let session = slot.session {
                 barPopup(for: session)
@@ -326,10 +313,24 @@ struct WeeklyOnsetChart: View {
                     .foregroundStyle(.secondary)
             }
             if let media = session.mediaSnapshot {
-                Text(media.artistName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Button {
+                    NotificationCenter.default.post(
+                        name: .driftOpenArtist,
+                        object: nil,
+                        userInfo: ["artistName": media.artistName]
+                    )
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(media.artistName)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary.opacity(0.5))
+                    }
+                }
+                .buttonStyle(.plain)
             }
             Label(friendlySleepStage(session.sleepStage), systemImage: "moon.zzz.fill")
                 .font(.caption2)
@@ -371,7 +372,7 @@ struct QuickStatsRow: View {
         HStack(spacing: 12) {
             StatCard(label: "Total Drifts", value: "\(totalSessions)", icon: "moon.zzz.fill")
             if let artist = topArtist {
-                StatCard(label: "Top artist", value: artist.artistName, icon: "music.mic")
+                StatCard(label: "Top drift artist", value: artist.artistName, icon: "music.mic")
             }
         }
     }
@@ -445,6 +446,60 @@ struct StatCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Now Playing Pill
+
+struct NowPlayingPill: View {
+    let media: MediaSnapshot
+
+    private var brandColor: Color {
+        switch media.appBundleID {
+        case "com.spotify.client":     return Color(red: 0.114, green: 0.725, blue: 0.329) // #1DB954
+        case "com.google.ios.youtube": return Color(red: 1.0,   green: 0.0,   blue: 0.0  ) // #FF0000
+        case "com.apple.podcasts":     return Color(red: 0.608, green: 0.349, blue: 0.714) // #9B59B6
+        case "com.apple.Music":        return Color(red: 0.988, green: 0.235, blue: 0.267) // #FC3C44
+        case "com.audible.iphone":     return Color(red: 0.973, green: 0.600, blue: 0.110) // #F8991C
+        case "com.apple.iBooks":       return Color(red: 0.110, green: 0.498, blue: 0.941) // #1C7FF0
+        case "org.overdrive.libby":    return Color(red: 0.361, green: 0.620, blue: 0.192) // #5C9E31
+        default:                       return .indigo
+        }
+    }
+
+    private var appIcon: String {
+        switch media.appBundleID {
+        case "com.spotify.client":     return "music.note"
+        case "com.google.ios.youtube": return "play.rectangle.fill"
+        case "com.apple.podcasts":     return "mic.fill"
+        case "com.apple.Music":        return "music.note"
+        case "com.audible.iphone":     return "headphones"
+        case "com.apple.iBooks":       return "book.fill"
+        case "org.overdrive.libby":    return "book.fill"
+        default:                       return "headphones"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: appIcon)
+                .font(.caption)
+                .foregroundStyle(brandColor)
+                .frame(width: 16)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(media.trackTitle)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                Text(media.artistName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -648,23 +703,28 @@ struct MorningLogSheet: View {
 
             if ratingEnabled {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("How was your sleep?")
+                    Text("How did you drift?")
                         .font(.subheadline)
                         .fontWeight(.medium)
 
                     HStack(spacing: 0) {
                         ForEach(1...5, id: \.self) { i in
+                            let isSelected = i <= (qualityRating ?? 0)
                             Button {
                                 qualityRating = qualityRating == i ? nil : i
                             } label: {
-                                Image(systemName: i <= (qualityRating ?? 0) ? "moon.fill" : "moon")
-                                    .font(.title)
-                                    .foregroundStyle(i <= (qualityRating ?? 0) ? .indigo : .secondary.opacity(0.3))
+                                Image("DriftCrescent")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: isSelected ? 38 : 28)
+                                    .clipShape(RoundedRectangle(cornerRadius: isSelected ? 9 : 6.5))
+                                    .opacity(isSelected ? 1.0 : 0.25)
+                                    .shadow(color: isSelected ? .indigo.opacity(0.55) : .clear, radius: 10)
                                     .frame(maxWidth: .infinity)
                                     .contentShape(Rectangle())
+                                    .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isSelected)
                             }
                             .buttonStyle(.plain)
-                            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: qualityRating)
                         }
                     }
                 }

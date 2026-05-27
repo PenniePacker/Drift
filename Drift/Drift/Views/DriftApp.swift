@@ -36,6 +36,7 @@ final class DriftNotificationDelegate: NSObject, UNUserNotificationCenterDelegat
 
 extension Notification.Name {
     static let driftOpenHistory = Notification.Name("driftOpenHistory")
+    static let driftOpenArtist  = Notification.Name("driftOpenArtist")
 }
 
 @main
@@ -111,6 +112,7 @@ struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showOnboarding = false
     @State private var selectedTab = 0
+    @State private var artistToOpen: String? = nil
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -122,7 +124,7 @@ struct ContentView: View {
                 .tabItem { Label("History", systemImage: "chart.line.uptrend.xyaxis") }
                 .tag(1)
 
-            ArtistStatsView()
+            ArtistStatsView(artistToOpen: $artistToOpen)
                 .tabItem { Label("Artists", systemImage: "music.mic") }
                 .tag(2)
 
@@ -144,6 +146,12 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .driftOpenHistory)) { _ in
             selectedTab = 1
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .driftOpenArtist)) { notification in
+            if let name = notification.userInfo?["artistName"] as? String {
+                selectedTab = 2
+                artistToOpen = name
+            }
         }
     }
 }

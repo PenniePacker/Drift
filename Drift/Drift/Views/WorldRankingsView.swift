@@ -134,7 +134,7 @@ struct WorldRankingsView: View {
 
                     // Contributor count
                     if contributorCount > 0 {
-                        Text("\(contributorCount.formatted()) Drifters worldwide 🌙")
+                        Text("\(contributorCount.formatted()) Drifters worldwide")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal)

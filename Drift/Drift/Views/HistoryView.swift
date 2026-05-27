@@ -255,15 +255,18 @@ struct MediaDetailBlock: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.orange)
+                        Text("into track")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     } else if let elapsed = media.elapsedSeconds {
+                        Text("drifted off at")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                         Text(formatSeconds(elapsed))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.indigo)
                     }
-                    Text("into track")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -278,12 +281,15 @@ struct MediaDetailBlock: View {
                         .foregroundStyle(.tertiary)
                 }
             } else if let frac = progressFraction {
-                VStack(spacing: 6) {
+                VStack(spacing: 0) {
                     GeometryReader { geo in
-                        let barW  = geo.size.width
-                        let fillW = barW * frac
-                        let lw: CGFloat = 72
-                        let labelX = min(max(fillW - lw / 2, 0), barW - lw)
+                        let barW    = geo.size.width
+                        let fillW   = barW * frac
+                        let lw: CGFloat = 78
+                        // Center label on the dot, clamped to bar bounds
+                        let dotCenter: CGFloat = min(max(fillW, 4), barW - 4)
+                        let labelX  = min(max(dotCenter - lw / 2, 0), barW - lw)
+                        let aboveBar = frac > 0.85
                         ZStack(alignment: .topLeading) {
                             Capsule().fill(.secondary.opacity(0.15))
                                 .frame(width: barW, height: 4)
@@ -292,19 +298,21 @@ struct MediaDetailBlock: View {
                             Circle().fill(.indigo)
                                 .frame(width: 8, height: 8)
                                 .offset(x: max(fillW - 4, 0), y: -2)
-                            Text("↑ fell asleep here")
+                            Text("drifted off")
                                 .font(.caption2).foregroundStyle(.indigo)
                                 .frame(width: lw, alignment: .center)
-                                .offset(x: labelX, y: 12)
+                                .offset(x: labelX, y: aboveBar ? -18 : 12)
                         }
                     }
                     .frame(height: 28)
-                    HStack {
-                        Text("0:00").font(.caption2).foregroundStyle(.tertiary)
-                        Spacer()
-                        if let dur = media.durationSeconds {
-                            Text(formatSeconds(dur)).font(.caption2).foregroundStyle(.tertiary)
+                    if let dur = media.durationSeconds {
+                        HStack {
+                            Spacer()
+                            Text(formatSeconds(dur))
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
+                        .padding(.top, 12)
                     }
                 }
             }

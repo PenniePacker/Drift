@@ -6,6 +6,8 @@ import SwiftData
 
 struct ArtistStatsView: View {
 
+    @Binding var artistToOpen: String?
+
     @Query(
         filter: #Predicate<ArtistStat> { $0.isUnlocked == true },
         sort: \ArtistStat.driftScore,
@@ -17,6 +19,8 @@ struct ArtistStatsView: View {
         sort: \ArtistStat.confirmedSessionCount,
         order: .reverse
     ) private var lockedArtists: [ArtistStat]
+
+    @State private var selectedArtist: ArtistStat? = nil
 
     private var bestSleeperTrack: TrackStat? {
         unlockedArtists
@@ -83,6 +87,18 @@ struct ArtistStatsView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
+            .navigationDestination(item: $selectedArtist) { artist in
+                ArtistDrillDownView(artist: artist)
+            }
+            .onChange(of: artistToOpen) { _, name in
+                guard let name, !name.isEmpty else { return }
+                if let match = unlockedArtists.first(where: {
+                    $0.artistName.lowercased() == name.lowercased()
+                }) {
+                    selectedArtist = match
+                }
+                artistToOpen = nil
+            }
         }
     }
 }
@@ -143,7 +159,7 @@ struct GlobalBestSleeperBanner: View {
                 }
             } label: {
                 Label(
-                    isPlaying ? "Stop" : "Play my best sleeper",
+                    isPlaying ? "Stop" : "Drift off",
                     systemImage: isPlaying ? "stop.fill" : "play.fill"
                 )
                 .font(.subheadline)
@@ -399,7 +415,7 @@ struct ArtistBestSleeperCard: View {
                 }
             } label: {
                 Label(
-                    isPlaying ? "Stop" : "Play my best sleeper",
+                    isPlaying ? "Stop" : "Drift off",
                     systemImage: isPlaying ? "stop.fill" : "play.fill"
                 )
                 .font(.subheadline)
