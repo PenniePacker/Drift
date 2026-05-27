@@ -113,10 +113,16 @@ struct WorldRankingsView: View {
     @State private var errorMessage: String?
     @State private var contributorCount: Int = 0
     @State private var searchText = ""
-    @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var allEntries: [GlobalLeaderboardEntry] = []
 
     private var myArtistNames: Set<String> {
         Set(myArtists.map(\.artistName))
+    }
+
+    private var visibleEntries: [GlobalLeaderboardEntry] {
+        let q = searchText.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return entries }
+        return allEntries.filter { $0.artistName.localizedCaseInsensitiveContains(q) }
     }
 
     var body: some View {
@@ -162,14 +168,6 @@ struct WorldRankingsView: View {
                     .padding(.vertical, 9)
                     .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal)
-                    .onChange(of: searchText) { _, newValue in
-                        searchDebounceTask?.cancel()
-                        searchDebounceTask = Task {
-                            try? await Task.sleep(for: .milliseconds(300))
-                            guard !Task.isCancelled else { return }
-                            loadLeaderboard(search: newValue.isEmpty ? nil : newValue)
-                        }
-                    }
 
                     // Category tabs
                     CategoryTabBar(selected: $selectedCategory) {
@@ -187,7 +185,7 @@ struct WorldRankingsView: View {
                     } else if let error = errorMessage {
                         ErrorView(message: error) { loadLeaderboard() }
                             .padding(.horizontal)
-                    } else if entries.isEmpty {
+                    } else if visibleEntries.isEmpty {
                         if searchText.isEmpty {
                             EmptyLeaderboardView()
                                 .padding(.horizontal)
@@ -197,7 +195,7 @@ struct WorldRankingsView: View {
                         }
                     } else {
                         VStack(spacing: 8) {
-                            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            ForEach(Array(visibleEntries.enumerated()), id: \.element.id) { index, entry in
                                 GlobalEntryRow(
                                     rank: index + 1,
                                     entry: entry,
@@ -230,6 +228,29 @@ struct WorldRankingsView: View {
     private func loadAll() async {
         loadLeaderboard()
         await loadStats()
+        await loadAllEntries()
+    }
+
+    private func loadAllEntries() async {
+        let categories = GlobalSyncService.LeaderboardCategory.allCases
+        var merged: [String: GlobalLeaderboardEntry] = [:]
+
+        if useMockData {
+            for category in categories {
+                for entry in MockLeaderboard.entries(for: category) {
+                    merged[entry.id] = entry
+                }
+            }
+            await MainActor.run { allEntries = Array(merged.values) }
+            return
+        }
+
+        for category in categories {
+            if let result = try? await GlobalSyncService.shared.fetchLeaderboard(category: category) {
+                for entry in result { merged[entry.id] = entry }
+            }
+        }
+        await MainActor.run { allEntries = Array(merged.values) }
     }
 
     private func loadLeaderboard(search: String? = nil) {

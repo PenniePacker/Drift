@@ -180,7 +180,7 @@ final class GlobalSyncService {
         return try JSONDecoder().decode([GlobalLeaderboardEntry].self, from: data)
     }
 
-    enum LeaderboardCategory: String {
+    enum LeaderboardCategory: String, CaseIterable {
         case artists, podcasts, tracks
     }
 
