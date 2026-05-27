@@ -11,11 +11,20 @@ import Foundation
 @MainActor
 enum SampleDataLoader {
 
-    // MARK: - Entry point
+    // MARK: - Entry points
 
     static func load(into context: ModelContext) {
         clearExisting(context)
         let sessions = buildSessions()
+        for s in sessions { context.insert(s) }
+        let artists = buildArtistStats(from: sessions)
+        for a in artists { context.insert(a); a.trackStats.forEach { context.insert($0) } }
+        try? context.save()
+    }
+
+    static func randomize(into context: ModelContext) {
+        clearExisting(context)
+        let sessions = buildRandomSessions()
         for s in sessions { context.insert(s) }
         let artists = buildArtistStats(from: sessions)
         for a in artists { context.insert(a); a.trackStats.forEach { context.insert($0) } }
@@ -129,11 +138,21 @@ enum SampleDataLoader {
         }
 
         let emojis: [String: String] = [
-            "Joe Rogan":    "🎙️",
-            "Lofi Girl":    "🎧",
-            "Huberman Lab": "🧠",
-            "James Blake":  "🎹",
-            "Taylor Swift": "🎶",
+            "Joe Rogan":             "🎙️",
+            "Lofi Girl":             "🎧",
+            "Huberman Lab":          "🧠",
+            "James Blake":           "🎹",
+            "Taylor Swift":          "🎶",
+            "Brian Eno":             "🎹",
+            "Max Richter":           "🎻",
+            "Nils Frahm":            "🎹",
+            "Erik Satie":            "🎹",
+            "Steezy Gonzalez":       "🎧",
+            "Sleep With Me":         "😴",
+            "Nothing Much Happens":  "🌿",
+            "J.K. Rowling":          "📚",
+            "James Clear":           "📚",
+            "Frank Herbert":         "📚",
         ]
         let apps: [String: (bundleID: String, displayName: String)] = [
             "Joe Rogan":    ("com.spotify.client",      "Spotify"),
@@ -188,6 +207,130 @@ enum SampleDataLoader {
                 : 0
 
             return artist
+        }
+    }
+    // MARK: - Random content pool
+
+    private struct ContentSeed {
+        let appBundleID: String
+        let appDisplayName: String
+        let artistName: String
+        let trackTitle: String
+        let albumOrShow: String?
+        let durationSeconds: Double
+        let isLiveStream: Bool
+        let deepLinkURI: String?
+    }
+
+    // Spotify music (~30% of sessions)
+    private static let spotifySeeds: [ContentSeed] = [
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Brian Eno",   trackTitle: "Music for Airports 1/1",       albumOrShow: "Ambient 1: Music for Airports", durationSeconds: 1171, isLiveStream: false, deepLinkURI: "spotify:track:musicforairports"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Brian Eno",   trackTitle: "The Big Ship",                  albumOrShow: "Another Green World",          durationSeconds:  214, isLiveStream: false, deepLinkURI: "spotify:track:bigship"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Brian Eno",   trackTitle: "2/1 (For David McComb)",         albumOrShow: "Ambient 1: Music for Airports", durationSeconds:  968, isLiveStream: false, deepLinkURI: "spotify:track:twoone"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Max Richter", trackTitle: "On the Nature of Daylight",      albumOrShow: "The Blue Notebooks",           durationSeconds:  396, isLiveStream: false, deepLinkURI: "spotify:track:natureofdaylight"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Max Richter", trackTitle: "November",                       albumOrShow: "The Blue Notebooks",           durationSeconds:  178, isLiveStream: false, deepLinkURI: "spotify:track:november"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Nils Frahm",  trackTitle: "Says",                          albumOrShow: "Spaces",                       durationSeconds:  769, isLiveStream: false, deepLinkURI: "spotify:track:says"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Nils Frahm",  trackTitle: "All Melody",                    albumOrShow: "All Melody",                   durationSeconds:  413, isLiveStream: false, deepLinkURI: "spotify:track:allmelody"),
+        ContentSeed(appBundleID: "com.spotify.client", appDisplayName: "Spotify", artistName: "Erik Satie",  trackTitle: "Gymnopédie No.1",               albumOrShow: "Gymnopédies & Gnossiennes",    durationSeconds:  218, isLiveStream: false, deepLinkURI: "spotify:track:gymnopedie1"),
+    ]
+
+    // YouTube (~25% of sessions)
+    private static let youtubeSeeds: [ContentSeed] = [
+        ContentSeed(appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", artistName: "Lofi Girl",       trackTitle: "lofi hip hop radio — beats to relax/study to", albumOrShow: nil, durationSeconds: 0, isLiveStream: true,  deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", artistName: "Lofi Girl",       trackTitle: "lofi hip hop radio — beats to sleep/chill to", albumOrShow: nil, durationSeconds: 0, isLiveStream: true,  deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.google.ios.youtube", appDisplayName: "YouTube", artistName: "Steezy Gonzalez", trackTitle: "Lo-Fi Beats to relax / study to — live",        albumOrShow: nil, durationSeconds: 0, isLiveStream: true,  deepLinkURI: nil),
+    ]
+
+    // Apple Podcasts (~20% of sessions)
+    private static let podcastSeeds: [ContentSeed] = [
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Huberman Lab",         trackTitle: "Master Your Sleep & Be More Alert When Awake", albumOrShow: "Huberman Lab",         durationSeconds: 5820, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Huberman Lab",         trackTitle: "Using Light for Health",                       albumOrShow: "Huberman Lab",         durationSeconds: 6300, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Huberman Lab",         trackTitle: "Optimal Morning Routine",                      albumOrShow: "Huberman Lab",         durationSeconds: 5400, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Sleep With Me",        trackTitle: "The Clock Shop — Episode 412",                 albumOrShow: "Sleep With Me",        durationSeconds: 4800, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Sleep With Me",        trackTitle: "A Rambling Tale of Not Much",                  albumOrShow: "Sleep With Me",        durationSeconds: 4500, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Nothing Much Happens", trackTitle: "In a Small Hotel Room",                        albumOrShow: "Nothing Much Happens", durationSeconds: 1800, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.apple.podcasts", appDisplayName: "Podcasts", artistName: "Nothing Much Happens", trackTitle: "A Seaside Village",                            albumOrShow: "Nothing Much Happens", durationSeconds: 1620, isLiveStream: false, deepLinkURI: nil),
+    ]
+
+    // Audible (~10% of sessions)
+    private static let audibleSeeds: [ContentSeed] = [
+        ContentSeed(appBundleID: "com.audible.iphone", appDisplayName: "Audible", artistName: "J.K. Rowling", trackTitle: "Harry Potter and the Philosopher's Stone", albumOrShow: nil, durationSeconds: 26400, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.audible.iphone", appDisplayName: "Audible", artistName: "James Clear",  trackTitle: "Atomic Habits",                           albumOrShow: nil, durationSeconds: 19800, isLiveStream: false, deepLinkURI: nil),
+        ContentSeed(appBundleID: "com.audible.iphone", appDisplayName: "Audible", artistName: "Frank Herbert", trackTitle: "Dune",                                   albumOrShow: nil, durationSeconds: 50400, isLiveStream: false, deepLinkURI: nil),
+    ]
+
+    // MARK: - Build random SleepSessions
+
+    private static func buildRandomSessions() -> [SleepSession] {
+        let cal = Calendar.current
+        let now = Date()
+        let stages = ["asleepCore", "asleepCore", "asleepCore", "asleepDeep", "asleepREM"]
+
+        // Guaranteed anchors: 3 artists with ≥3 sessions each so they appear unlocked in Artists tab
+        let anchors: [ContentSeed] = [
+            spotifySeeds[0], spotifySeeds[1], spotifySeeds[2], // Brian Eno ×3
+            youtubeSeeds[0], youtubeSeeds[1], youtubeSeeds[0], // Lofi Girl ×3
+            podcastSeeds[0], podcastSeeds[1], podcastSeeds[2], // Huberman Lab ×3
+        ]
+
+        // Fill remaining slots using weighted random picks
+        let total = Int.random(in: 22...28)
+        var fillSeeds: [ContentSeed?] = []
+        for _ in 0..<(total - anchors.count) {
+            let roll = Int.random(in: 0...99)
+            switch roll {
+            case 0..<15:  fillSeeds.append(nil)                                 // ~15% silence
+            case 15..<45: fillSeeds.append(spotifySeeds.randomElement()!)       // ~30% Spotify
+            case 45..<70: fillSeeds.append(youtubeSeeds.randomElement()!)       // ~25% YouTube
+            case 70..<90: fillSeeds.append(podcastSeeds.randomElement()!)       // ~20% Podcasts
+            default:      fillSeeds.append(audibleSeeds.randomElement()!)       // ~10% Audible
+            }
+        }
+
+        // Merge anchors + fill, shuffle, assign to unique days
+        var allSeeds: [ContentSeed?] = anchors.map { Optional($0) } + fillSeeds
+        allSeeds.shuffle()
+
+        var usedDays = Set<Int>()
+        var days: [Int] = []
+        while days.count < allSeeds.count {
+            if usedDays.insert(Int.random(in: 0...29)).inserted {
+                days.append(usedDays.count - 1)
+            }
+        }
+
+        return zip(days, allSeeds).map { daysAgo, seed in
+            let baseDate = cal.date(byAdding: .day, value: -daysAgo, to: now)!
+            let bedHour   = [21, 22, 22, 23, 23, 23, 0].randomElement()!
+            let bedMinute = [0, 15, 30, 45].randomElement()!
+            let bed   = cal.date(bySettingHour: bedHour, minute: bedMinute, second: 0, of: baseDate)!
+            let onset = Double(Int.random(in: 5...38))
+            let sleep = bed.addingTimeInterval(onset * 60)
+            let stage = stages.randomElement()!
+
+            var snap: MediaSnapshot? = nil
+            if let s = seed {
+                let elapsed: Double
+                if s.isLiveStream {
+                    elapsed = 0
+                } else {
+                    let cap = min(s.durationSeconds * 0.9, onset * 60)
+                    elapsed = Double.random(in: 30...max(30, cap))
+                }
+                snap = MediaSnapshot(
+                    appBundleID: s.appBundleID,
+                    appDisplayName: s.appDisplayName,
+                    trackTitle: s.trackTitle,
+                    artistName: s.artistName,
+                    albumOrShow: s.albumOrShow,
+                    elapsedSeconds: elapsed,
+                    durationSeconds: s.durationSeconds,
+                    isLiveStream: s.isLiveStream,
+                    deepLinkURI: s.deepLinkURI,
+                    spotifyID: nil
+                )
+            }
+            return SleepSession(bedTime: bed, sleepOnsetTime: sleep, sleepStage: stage, mediaSnapshot: snap)
         }
     }
 }

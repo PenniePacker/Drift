@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var debugTapCount = 0
     @State private var debugMenuVisible = false
     @State private var showSampleDataConfirm = false
+    @State private var showRandomizeConfirm = false
     #endif
 
     @Environment(\.modelContext) private var context
@@ -148,6 +149,13 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.indigo)
 
+                        Button {
+                            showRandomizeConfirm = true
+                        } label: {
+                            Label("Randomise sample data", systemImage: "shuffle")
+                        }
+                        .foregroundStyle(.indigo)
+
                         Button(role: .destructive) {
                             deleteAllData()
                         } label: {
@@ -201,6 +209,18 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This will replace all existing data with realistic fake sessions for 5 artists.")
+            }
+            .confirmationDialog(
+                "Randomise sample data?",
+                isPresented: $showRandomizeConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Generate random dataset") {
+                    SampleDataLoader.randomize(into: context)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Deletes all existing data and generates 22–28 random Drifts across Spotify, YouTube, Podcasts, Audible, and silence.")
             }
             #endif
             .sheet(isPresented: $showOnboarding) {

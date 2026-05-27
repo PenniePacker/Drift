@@ -191,7 +191,6 @@ struct OnsetRingCard: View {
                              value: "\(Int(session.onsetMinutes))m")
                     if let media = session.mediaSnapshot {
                         NowPlayingPill(media: media)
-                            .frame(maxWidth: .infinity)
                     } else {
                         StatPill(icon: "moon.zzz", label: "", value: "Silence")
                     }
@@ -372,7 +371,16 @@ struct QuickStatsRow: View {
         HStack(spacing: 12) {
             StatCard(label: "Total Drifts", value: "\(totalSessions)", icon: "moon.zzz.fill")
             if let artist = topArtist {
-                StatCard(label: "Top drift artist", value: artist.artistName, icon: "music.mic")
+                Button {
+                    NotificationCenter.default.post(
+                        name: .driftOpenArtist,
+                        object: nil,
+                        userInfo: ["artistName": artist.artistName]
+                    )
+                } label: {
+                    StatCard(label: "Top drift artist", value: artist.artistName, icon: "music.mic")
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -386,14 +394,16 @@ struct StatPill: View {
     let value: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .center, spacing: 6) {
             Image(systemName: icon)
                 .font(.caption)
                 .foregroundStyle(.indigo)
             VStack(alignment: .leading, spacing: 1) {
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                if !label.isEmpty {
+                    Text(label)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
                 Text(value)
                     .font(.caption)
                     .fontWeight(.medium)
@@ -401,7 +411,7 @@ struct StatPill: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .center)
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -481,7 +491,7 @@ struct NowPlayingPill: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             Image(systemName: appIcon)
                 .font(.caption)
                 .foregroundStyle(brandColor)
@@ -498,7 +508,7 @@ struct NowPlayingPill: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .center)
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
     }
 }
