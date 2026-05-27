@@ -112,6 +112,8 @@ struct WorldRankingsView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var contributorCount: Int = 0
+    @State private var searchText = ""
+    @State private var searchDebounceTask: Task<Void, Never>?
 
     private var myArtistNames: Set<String> {
         Set(myArtists.map(\.artistName))
@@ -140,11 +142,42 @@ struct WorldRankingsView: View {
                             .padding(.horizontal)
                     }
 
+                    // Search field
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                        TextField("Search artists, podcasts, tracks…", text: $searchText)
+                            .textFieldStyle(.plain)
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
+                    .onChange(of: searchText) { _, newValue in
+                        searchDebounceTask?.cancel()
+                        searchDebounceTask = Task {
+                            try? await Task.sleep(for: .milliseconds(300))
+                            guard !Task.isCancelled else { return }
+                            loadLeaderboard(search: newValue.isEmpty ? nil : newValue)
+                        }
+                    }
+
                     // Category tabs
                     CategoryTabBar(selected: $selectedCategory) {
+                        searchText = ""
                         loadLeaderboard()
                     }
                     .padding(.horizontal)
+                    .opacity(searchText.isEmpty ? 1 : 0.4)
 
                     // Leaderboard entries
                     if isLoading {
@@ -155,8 +188,13 @@ struct WorldRankingsView: View {
                         ErrorView(message: error) { loadLeaderboard() }
                             .padding(.horizontal)
                     } else if entries.isEmpty {
-                        EmptyLeaderboardView()
-                            .padding(.horizontal)
+                        if searchText.isEmpty {
+                            EmptyLeaderboardView()
+                                .padding(.horizontal)
+                        } else {
+                            NoSearchMatchInvitation(query: searchText)
+                                .padding(.horizontal)
+                        }
                     } else {
                         VStack(spacing: 8) {
                             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
@@ -194,21 +232,22 @@ struct WorldRankingsView: View {
         await loadStats()
     }
 
-    private func loadLeaderboard() {
+    private func loadLeaderboard(search: String? = nil) {
         isLoading = true
         errorMessage = nil
+        let isSearch = search != nil && !search!.isEmpty
         Task {
             do {
-                let result = try await GlobalSyncService.shared.fetchLeaderboard(category: selectedCategory)
+                let result = try await GlobalSyncService.shared.fetchLeaderboard(category: selectedCategory, search: search)
                 await MainActor.run {
-                    entries = (useMockData && result.isEmpty)
+                    entries = (useMockData && result.isEmpty && !isSearch)
                         ? MockLeaderboard.entries(for: selectedCategory)
                         : result
                     isLoading = false
                 }
             } catch {
                 await MainActor.run {
-                    entries = useMockData ? MockLeaderboard.entries(for: selectedCategory) : []
+                    entries = (useMockData && !isSearch) ? MockLeaderboard.entries(for: selectedCategory) : []
                     errorMessage = useMockData ? nil : "Couldn't load rankings. Pull to retry."
                     isLoading = false
                 }
@@ -444,6 +483,27 @@ struct EmptyLeaderboardView: View {
             Text("No entries yet")
                 .font(.headline)
             Text("Be the first to contribute to the world rankings by recording sleep Drifts.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+}
+
+struct NoSearchMatchInvitation: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "moon.stars")
+                .font(.system(size: 48))
+                .foregroundStyle(.indigo)
+            Text("No Drifter has drifted off to anything matching '\(query)' yet.")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text("Drift off to them tonight and you'll be the first to put them on the map.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

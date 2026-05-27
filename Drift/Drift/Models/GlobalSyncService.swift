@@ -159,13 +159,18 @@ final class GlobalSyncService {
 
     // MARK: - Fetch global leaderboard
 
-    func fetchLeaderboard(category: LeaderboardCategory, limit: Int = 50) async throws -> [GlobalLeaderboardEntry] {
+    func fetchLeaderboard(category: LeaderboardCategory, limit: Int = 50, search: String? = nil) async throws -> [GlobalLeaderboardEntry] {
         var components = URLComponents(url: baseURL.appendingPathComponent("global_leaderboard"), resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "category", value: "eq.\(category.rawValue)"),
+        var queryItems = [
             URLQueryItem(name: "limit", value: "\(limit)"),
             URLQueryItem(name: "order", value: "global_drift_score.desc")
         ]
+        if let search, !search.isEmpty {
+            queryItems.append(URLQueryItem(name: "artist_name", value: "ilike.*\(search)*"))
+        } else {
+            queryItems.insert(URLQueryItem(name: "category", value: "eq.\(category.rawValue)"), at: 0)
+        }
+        components.queryItems = queryItems
 
         var request = URLRequest(url: components.url!)
         request.setValue(anonKey, forHTTPHeaderField: "apikey")

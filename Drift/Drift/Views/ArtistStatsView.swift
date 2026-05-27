@@ -4,6 +4,11 @@
 import SwiftUI
 import SwiftData
 
+enum ArtistSort: String, CaseIterable {
+    case topDrifters = "Top Drifters"
+    case fastest     = "Fastest"
+}
+
 struct ArtistStatsView: View {
 
     @Binding var artistToOpen: String?
@@ -21,6 +26,14 @@ struct ArtistStatsView: View {
     ) private var lockedArtists: [ArtistStat]
 
     @State private var selectedArtist: ArtistStat? = nil
+    @State private var sort: ArtistSort = .topDrifters
+
+    private var sortedArtists: [ArtistStat] {
+        switch sort {
+        case .topDrifters: return unlockedArtists
+        case .fastest:     return unlockedArtists.sorted { $0.averageOnsetMinutes < $1.averageOnsetMinutes }
+        }
+    }
 
     private var bestSleeperTrack: TrackStat? {
         unlockedArtists
@@ -48,12 +61,37 @@ struct ArtistStatsView: View {
                     // Unlocked artists
                     if !unlockedArtists.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            SectionHeader(title: "All artists")
-                                .padding(.horizontal)
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 8) {
+                                    ForEach(ArtistSort.allCases, id: \.rawValue) { option in
+                                        Button {
+                                            sort = option
+                                        } label: {
+                                            Text(option.rawValue)
+                                                .font(.subheadline)
+                                                .fontWeight(sort == option ? .semibold : .regular)
+                                                .foregroundStyle(sort == option ? .indigo : .secondary)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 8)
+                                                .background(
+                                                    sort == option
+                                                        ? Color.indigo.opacity(0.12)
+                                                        : Color.secondary.opacity(0.08),
+                                                    in: RoundedRectangle(cornerRadius: 10)
+                                                )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                Text(sort == .topDrifters ? "Ranked by Drift score" : "Ranked by how fast you drift off")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal)
 
-                            ForEach(Array(unlockedArtists.enumerated()), id: \.element.id) { index, artist in
+                            ForEach(Array(sortedArtists.enumerated()), id: \.element.id) { index, artist in
                                 NavigationLink(destination: ArtistDrillDownView(artist: artist)) {
-                                    ArtistRow(rank: index + 1, artist: artist, maxScore: unlockedArtists.first?.driftScore ?? 1)
+                                    ArtistRow(rank: index + 1, artist: artist, maxScore: sortedArtists.first?.driftScore ?? 1, sort: sort)
                                         .padding(.horizontal)
                                 }
                                 .buttonStyle(.plain)
@@ -185,6 +223,7 @@ struct ArtistRow: View {
     let rank: Int
     let artist: ArtistStat
     let maxScore: Double
+    let sort: ArtistSort
 
     private var rankColor: Color {
         switch rank {
@@ -222,13 +261,23 @@ struct ArtistRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(artist.confirmedSessionCount)×")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.indigo)
-                Text("avg \(Int(artist.averageOnsetMinutes))m")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                if sort == .fastest {
+                    Text("\(Int(artist.averageOnsetMinutes))m")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.indigo)
+                    Text("avg to drift off")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(artist.confirmedSessionCount)×")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.indigo)
+                    Text("avg \(Int(artist.averageOnsetMinutes))m")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Image(systemName: "chevron.right")
