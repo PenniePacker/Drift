@@ -129,7 +129,7 @@ struct SettingsView: View {
                         }
                     #endif
                     LabeledContent("Drift score formula", value: "sessions × (30 ÷ avg onset)")
-                    LabeledContent("Sessions to unlock artist", value: "3 confirmed")
+                    LabeledContent("Drifts to unlock artist", value: "3 confirmed")
 
                     Link("Privacy policy", destination: URL(string: "https://yourdomain.com/privacy")!)
                         .foregroundStyle(.indigo)
@@ -156,7 +156,7 @@ struct SettingsView: View {
                     } header: {
                         Text("Debug")
                     } footer: {
-                        Text("Inserts 26 sessions: Joe Rogan, Lofi Girl, Huberman Lab, James Blake, Taylor Swift. Debug only.")
+                        Text("Inserts 26 Drifts: Joe Rogan, Lofi Girl, Huberman Lab, James Blake, Taylor Swift. Debug only.")
                     }
                 }
                 #endif
@@ -171,7 +171,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Data")
                 } footer: {
-                    Text("Permanently removes all sleep sessions, artist stats, and track history from this device. This cannot be undone.")
+                    Text("Permanently removes all sleep Drifts, artist stats, and track history from this device. This cannot be undone.")
                 }
             }
             .navigationTitle("Settings")
@@ -187,7 +187,7 @@ struct SettingsView: View {
                 Button("Delete everything", role: .destructive) { deleteAllData() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will permanently remove all sleep sessions, artist stats, and track history from this device.")
+                Text("This will permanently remove all sleep Drifts, artist stats, and track history from this device.")
             }
             #if DEBUG
             .confirmationDialog(

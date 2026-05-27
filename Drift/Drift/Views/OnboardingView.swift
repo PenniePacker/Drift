@@ -114,48 +114,52 @@ struct OnboardingView: View {
 
 struct OnboardingPage1: View {
     var body: some View {
-        VStack(spacing: 36) {
-            Spacer()
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 28) {
+                Spacer(minLength: 20)
 
-            // Moon illustration
-            ZStack {
-                Circle()
-                    .fill(RadialGradient(
-                        colors: [.indigo.opacity(0.25), .clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 110
-                    ))
-                    .frame(width: 220, height: 220)
+                // Moon illustration
+                ZStack {
+                    Circle()
+                        .fill(RadialGradient(
+                            colors: [.indigo.opacity(0.25), .clear],
+                            center: .center,
+                            startRadius: 10,
+                            endRadius: 90
+                        ))
+                        .frame(width: 180, height: 180)
 
-                Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 88, weight: .thin))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.indigo, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 72, weight: .thin))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.indigo, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
+                }
+
+                VStack(spacing: 14) {
+                    Text("Drift off.\nWe'll handle the rest.")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("Drift automatically pauses your music or podcast the moment you fall asleep — then tells you what content helps you sleep fastest.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 16)
             }
-
-            VStack(spacing: 16) {
-                Text("Drift off.\nWe'll handle the rest.")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-
-                Text("Drift automatically pauses your music or podcast the moment you fall asleep — then tells you what content helps you sleep fastest.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-            }
-
-            Spacer()
+            .padding(.horizontal, 32)
         }
-        .padding(.horizontal, 32)
     }
 }
 
@@ -267,54 +271,57 @@ struct DeviceRow: View {
 
 struct OnboardingPage3: View {
     var body: some View {
-        VStack(spacing: 36) {
-            Spacer()
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 28) {
+                Spacer(minLength: 20)
 
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(.indigo.opacity(0.15))
-                        .frame(width: 104, height: 104)
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(.indigo.opacity(0.15))
+                            .frame(width: 100, height: 100)
 
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 46))
-                        .foregroundStyle(
-                            LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
-                        )
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(
+                                LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
+                            )
+                    }
+
+                    Text("Your sleep data\nstays yours")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("Your sleep data\nstays yours")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-            }
+                VStack(spacing: 0) {
+                    PrivacyBullet(
+                        icon: "lock.fill",
+                        color: .indigo,
+                        text: "Sleep data never leaves your device"
+                    )
+                    Divider().overlay(.white.opacity(0.07))
+                    PrivacyBullet(
+                        icon: "globe",
+                        color: .blue,
+                        text: "Only anonymous stats shared globally — never your identity"
+                    )
+                    Divider().overlay(.white.opacity(0.07))
+                    PrivacyBullet(
+                        icon: "heart.fill",
+                        color: .red,
+                        text: "HealthKit lets Drift detect sleep automatically"
+                    )
+                }
+                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 0.5))
 
-            VStack(spacing: 0) {
-                PrivacyBullet(
-                    icon: "lock.fill",
-                    color: .indigo,
-                    text: "Sleep data never leaves your device"
-                )
-                Divider().overlay(.white.opacity(0.07))
-                PrivacyBullet(
-                    icon: "globe",
-                    color: .blue,
-                    text: "Only anonymous stats shared globally — never your identity"
-                )
-                Divider().overlay(.white.opacity(0.07))
-                PrivacyBullet(
-                    icon: "heart.fill",
-                    color: .red,
-                    text: "HealthKit lets Drift detect sleep automatically"
-                )
+                Spacer(minLength: 16)
             }
-            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.08), lineWidth: 0.5))
-
-            Spacer()
+            .padding(.horizontal, 24)
         }
-        .padding(.horizontal, 24)
     }
 }
 

@@ -134,7 +134,7 @@ struct WorldRankingsView: View {
 
                     // Contributor count
                     if contributorCount > 0 {
-                        Text("\(contributorCount.formatted()) users contributing worldwide")
+                        Text("\(contributorCount.formatted()) Drifters worldwide 🌙")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal)
@@ -285,7 +285,7 @@ struct MyRankCard: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(.green)
-                    Text("avg onset")
+                    Text("avg to drift off")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -378,7 +378,7 @@ struct GlobalEntryRow: View {
                             .background(.indigo.opacity(0.12), in: Capsule())
                     }
                 }
-                Text("\(entry.appDisplayName) · \(entry.contributorCount) contributors")
+                Text("\(entry.appDisplayName) · \(entry.contributorCount) Drifters")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -389,7 +389,7 @@ struct GlobalEntryRow: View {
                 Text(entry.totalSessions.formatted())
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                Text("sessions")
+                Text("Drifts")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text("avg \(Int(entry.averageOnsetMinutes))m")
@@ -443,7 +443,7 @@ struct EmptyLeaderboardView: View {
                 .foregroundStyle(.secondary)
             Text("No entries yet")
                 .font(.headline)
-            Text("Be the first to contribute to the world rankings by recording sleep sessions.")
+            Text("Be the first to contribute to the world rankings by recording sleep Drifts.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

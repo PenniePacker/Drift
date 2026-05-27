@@ -33,13 +33,6 @@ struct HomeView: View {
 
     private var lastSession: SleepSession? { sessions.first }
 
-    private var bestSleeper: TrackStat? {
-        topArtists
-            .flatMap(\.trackStats)
-            .filter(\.isUnlocked)
-            .max(by: { $0.driftScore < $1.driftScore })
-    }
-
     @AppStorage("drift_manual_bedtime") private var bedTimeInterval: Double = 0
     @State private var showMorningLog = false
     @State private var morningLogBedTime: Date? = nil
@@ -86,11 +79,6 @@ struct HomeView: View {
 
                     // MARK: Tonight's Drift
                     TonightsDriftCard(confirmedSessionCount: sessions.count)
-
-                    // MARK: Best sleeper card
-                    if let best = bestSleeper {
-                        BestSleeperCard(track: best)
-                    }
 
                     // MARK: Quick stats row
                     if !topArtists.isEmpty {
@@ -157,20 +145,37 @@ struct OnsetRingCard: View {
     let averageOnset: Double
     let lastSession: SleepSession?
 
+    private var progressFraction: Double {
+        averageOnset > 0 ? max(0, 1.0 - averageOnset / 30.0) : 0
+    }
+
     private var onsetText: String {
         averageOnset > 0 ? "\(Int(averageOnset))m" : "—"
     }
 
     var body: some View {
         VStack(spacing: 16) {
-            // Ring
             ZStack {
+                // Track ring
                 Circle()
                     .stroke(.secondary.opacity(0.15), lineWidth: 8)
                     .frame(width: 120, height: 120)
 
+                // AppIcon at 35% opacity behind arc
+                #if os(iOS)
+                if let icon = UIImage(named: "AppIcon") {
+                    Image(uiImage: icon)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 88, height: 88)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .opacity(0.35)
+                }
+                #endif
+
+                // Progress arc: full = 0m (best), empty = 30m+ (worst)
                 Circle()
-                    .trim(from: 0, to: min(averageOnset / 60.0, 1.0))
+                    .trim(from: 0, to: progressFraction)
                     .stroke(
                         LinearGradient(colors: [.indigo, .purple], startPoint: .topLeading, endPoint: .bottomTrailing),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
@@ -182,8 +187,9 @@ struct OnsetRingCard: View {
                 VStack(spacing: 2) {
                     Text(onsetText)
                         .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("avg onset (7 nights)")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                    Text("avg (7 nights)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -209,7 +215,7 @@ struct OnsetRingCard: View {
                     )
                 }
             } else {
-                Text("No sessions recorded yet")
+                Text("No Drifts recorded yet")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -308,7 +314,7 @@ struct WeeklyOnsetChart: View {
                 .font(.caption)
                 .fontWeight(.semibold)
             HStack(spacing: 6) {
-                Text("Fell asleep in \(Int(session.onsetMinutes))m")
+                Text("Drifted off in \(Int(session.onsetMinutes))m")
                     .font(.caption)
                     .foregroundStyle(.indigo)
                     .fontWeight(.medium)
@@ -355,83 +361,6 @@ struct WeeklyOnsetChart: View {
     }
 }
 
-// MARK: - Best Sleeper Card
-
-struct BestSleeperCard: View {
-    let track: TrackStat
-    @State private var isPlaying = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Your best sleeper", systemImage: "star.fill")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.green)
-                Spacer()
-                Text("avg \(Int(track.averageOnsetMinutes))m onset")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.indigo.opacity(0.2))
-                    .frame(width: 48, height: 48)
-                    .overlay {
-                        Text("🎵")
-                            .font(.title2)
-                    }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(track.trackTitle)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                    Text(track.artistName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer()
-            }
-
-            HStack(spacing: 8) {
-                StatMini(label: "Sessions", value: "\(track.confirmedSessionCount)×")
-                StatMini(label: "Fastest", value: "\(Int(track.fastestOnsetMinutes))m")
-                StatMini(label: "Avg position", value: track.averageElapsedSeconds.map { formatSeconds($0) } ?? "—")
-            }
-
-            Button {
-                isPlaying.toggle()
-                if let uri = track.deepLinkURI, let url = URL(string: uri) {
-                    #if os(iOS)
-                    UIApplication.shared.open(url)
-                    #else
-                    NSWorkspace.shared.open(url)
-                    #endif
-                }
-            } label: {
-                Label(isPlaying ? "Stop" : "Play my best sleeper", systemImage: isPlaying ? "stop.fill" : "play.fill")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(.green, in: RoundedRectangle(cornerRadius: 12))
-            }
-        }
-        .padding()
-        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func formatSeconds(_ s: Double) -> String {
-        let m = Int(s) / 60
-        let sec = Int(s) % 60
-        return String(format: "%d:%02d", m, sec)
-    }
-}
-
 // MARK: - Quick Stats Row
 
 struct QuickStatsRow: View {
@@ -440,7 +369,7 @@ struct QuickStatsRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            StatCard(label: "Total sessions", value: "\(totalSessions)", icon: "moon.zzz.fill")
+            StatCard(label: "Total Drifts", value: "\(totalSessions)", icon: "moon.zzz.fill")
             if let artist = topArtist {
                 StatCard(label: "Top artist", value: artist.artistName, icon: "music.mic")
             }
@@ -867,16 +796,16 @@ struct MorningLogSheet: View {
             let avg = prior.map(\.onsetMinutes).reduce(0, +) / Double(prior.count)
             let diff = avg - newOnsetMinutes
             if diff >= 5 {
-                return "You fell asleep \(Int(diff.rounded())) minutes faster than your average 🌙"
+                return "You drifted off \(Int(diff.rounded())) minutes faster than your average 🌙"
             }
         }
 
         // First ever session
         if sessions.count <= 1 {
-            return "First session logged — the journey begins 🌙"
+            return "First Drift logged — the journey begins 🌙"
         }
 
-        return "Session logged — sleep well tonight 🌙"
+        return "Drift logged — sleep well tonight 🌙"
     }
 
     private func consecutiveNightStreak(in sessions: [SleepSession]) -> Int {
@@ -995,7 +924,7 @@ struct TonightsDriftCard: View {
     // MARK: Active state
 
     private var activeCard: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Label("Tonight's Drift", systemImage: "sparkles")
                     .font(.caption)
@@ -1006,44 +935,86 @@ struct TonightsDriftCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
-
-            Divider().overlay(.secondary.opacity(0.2))
 
             if let best = personalBest {
-                RecommendationRow(
-                    tag: "YOUR FASTEST",
-                    tagColor: .indigo,
-                    emoji: best.categoryEmoji,
-                    name: best.artistName,
-                    appName: best.appDisplayName,
-                    stat: "avg \(Int(best.averageOnsetMinutes))m onset",
-                    deepLinkURL: artistDeepLink(name: best.artistName, appBundleID: best.appBundleID)
-                )
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            }
+                let bestTrack = best.trackStats
+                    .filter(\.isUnlocked)
+                    .min(by: { $0.averageOnsetMinutes < $1.averageOnsetMinutes })
 
-            if personalBest != nil, let alt = globalAlternative {
-                Divider()
-                    .overlay(.secondary.opacity(0.12))
-                    .padding(.horizontal, 16)
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(
+                            LinearGradient(
+                                colors: [.indigo.opacity(0.3), .purple.opacity(0.2)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                        .overlay {
+                            Text(best.categoryEmoji)
+                                .font(.title2)
+                        }
 
-                RecommendationRow(
-                    tag: "TRY TONIGHT",
-                    tagColor: .purple,
-                    emoji: alt.categoryEmoji,
-                    name: alt.artistName,
-                    appName: alt.appDisplayName,
-                    stat: "#\(globalAlternativeRank) on world chart",
-                    deepLinkURL: artistDeepLink(name: alt.artistName, appBundleID: alt.appBundleID)
-                )
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(best.artistName)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                        Text("Puts you to drift off in \(Int(best.averageOnsetMinutes))m on average · \(best.confirmedSessionCount) \(best.confirmedSessionCount == 1 ? "Drift" : "Drifts")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        let url = bestTrack.flatMap { URL(string: $0.deepLinkURI ?? "") }
+                            ?? artistDeepLink(name: best.artistName, appBundleID: best.appBundleID)
+                        if let url {
+                            #if os(iOS)
+                            UIApplication.shared.open(url)
+                            #else
+                            NSWorkspace.shared.open(url)
+                            #endif
+                        }
+                    } label: {
+                        Label("Drift off", systemImage: "play.fill")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(colors: [.indigo, .purple], startPoint: .leading, endPoint: .trailing),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                    }
+
+                    if let alt = globalAlternative {
+                        Button {
+                            if let url = artistDeepLink(name: alt.artistName, appBundleID: alt.appBundleID) {
+                                #if os(iOS)
+                                UIApplication.shared.open(url)
+                                #else
+                                NSWorkspace.shared.open(url)
+                                #endif
+                            }
+                        } label: {
+                            Text("Try something new →")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
             }
         }
+        .padding()
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
     }
 
@@ -1081,63 +1052,3 @@ struct TonightsDriftCard: View {
     }
 }
 
-// MARK: - Recommendation Row
-
-struct RecommendationRow: View {
-    let tag: String
-    let tagColor: Color
-    let emoji: String
-    let name: String
-    let appName: String
-    let stat: String
-    let deepLinkURL: URL?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(tagColor.opacity(0.12))
-                .frame(width: 44, height: 44)
-                .overlay {
-                    Text(emoji)
-                        .font(.title3)
-                }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(tag)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(tagColor)
-                    .tracking(0.4)
-                Text(name)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-                Text("\(appName) · \(stat)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            if let url = deepLinkURL {
-                Button {
-                    #if os(iOS)
-                    UIApplication.shared.open(url)
-                    #else
-                    NSWorkspace.shared.open(url)
-                    #endif
-                } label: {
-                    Text("Open")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(tagColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(tagColor.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}

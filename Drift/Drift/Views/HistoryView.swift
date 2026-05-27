@@ -44,8 +44,8 @@ struct HistoryView: View {
                     // Summary row
                     if !sessions.isEmpty {
                         HStack(spacing: 12) {
-                            StatCard(label: "Total sessions", value: "\(sessions.count)", icon: "moon.zzz.fill")
-                            StatCard(label: "Avg onset", value: "\(Int(averageOnset))m", icon: "timer")
+                            StatCard(label: "Total Drifts", value: "\(sessions.count)", icon: "moon.zzz.fill")
+                            StatCard(label: "avg to drift off", value: "\(Int(averageOnset))m", icon: "timer")
                         }
                         .padding(.horizontal)
                     }
@@ -98,7 +98,7 @@ struct SessionCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Spacer()
-                Text("Fell asleep in \(Int(session.onsetMinutes))m")
+                Text("Drifted off in \(Int(session.onsetMinutes))m")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.indigo)
@@ -194,63 +194,78 @@ struct MediaDetailBlock: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Track row — tapping opens artist/show in the source app
-            Button {
-                if let url = artistDeepLink(name: media.artistName, appBundleID: media.appBundleID) {
-                    #if os(iOS)
-                    UIApplication.shared.open(url)
-                    #else
-                    NSWorkspace.shared.open(url)
-                    #endif
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.indigo.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                        .overlay {
-                            Image(systemName: trackIcon(for: media.appBundleID))
-                                .foregroundStyle(.indigo)
-                        }
+            // Track row — title tap opens track, artist name tap opens artist/show page
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.indigo.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                    .overlay {
+                        Image(systemName: trackIcon(for: media.appBundleID))
+                            .foregroundStyle(.indigo)
+                    }
 
-                    VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 2) {
+                    // Track title — opens track (with timestamp where applicable)
+                    Button {
+                        if let url = trackDeepLink(media: media) {
+                            #if os(iOS)
+                            UIApplication.shared.open(url)
+                            #else
+                            NSWorkspace.shared.open(url)
+                            #endif
+                        }
+                    } label: {
                         Text(media.trackTitle)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(.primary)
                             .lineLimit(1)
-                        Text(media.artistName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
                     }
+                    .buttonStyle(.plain)
 
-                    Spacer()
-
-                    // Position in track
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if media.isLiveStream {
-                            Text("Live")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.orange)
-                        } else if let elapsed = media.elapsedSeconds {
-                            Text(formatSeconds(elapsed))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.indigo)
+                    // Artist/show name — opens artist/channel/show page
+                    Button {
+                        if let url = artistDeepLink(name: media.artistName, appBundleID: media.appBundleID) {
+                            #if os(iOS)
+                            UIApplication.shared.open(url)
+                            #else
+                            NSWorkspace.shared.open(url)
+                            #endif
                         }
-                        Text("into track")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text(media.artistName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary.opacity(0.5))
+                        }
                     }
+                    .buttonStyle(.plain)
+                }
 
-                    Image(systemName: "arrow.up.right")
+                Spacer()
+
+                // Position in track
+                VStack(alignment: .trailing, spacing: 2) {
+                    if media.isLiveStream {
+                        Text("Live")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.orange)
+                    } else if let elapsed = media.elapsedSeconds {
+                        Text(formatSeconds(elapsed))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.indigo)
+                    }
+                    Text("into track")
                         .font(.caption2)
-                        .foregroundStyle(.indigo.opacity(0.5))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .buttonStyle(.plain)
 
             // Progress bar — fill end and "paused here" label are the same point
             if media.isLiveStream {
@@ -277,7 +292,7 @@ struct MediaDetailBlock: View {
                             Circle().fill(.indigo)
                                 .frame(width: 8, height: 8)
                                 .offset(x: max(fillW - 4, 0), y: -2)
-                            Text("paused here")
+                            Text("↑ fell asleep here")
                                 .font(.caption2).foregroundStyle(.indigo)
                                 .frame(width: lw, alignment: .center)
                                 .offset(x: labelX, y: 12)
@@ -325,6 +340,35 @@ struct MediaDetailBlock: View {
         }
     }
 
+    private func trackDeepLink(media: MediaSnapshot) -> URL? {
+        let elapsed = Int(media.elapsedSeconds ?? 0)
+        let duration = media.durationSeconds ?? 0
+        let isShort = duration > 0 && duration < 600
+
+        if let uri = media.deepLinkURI, !uri.isEmpty {
+            if media.appBundleID == "com.google.ios.youtube", !media.isLiveStream, !isShort, elapsed > 0 {
+                let separator = uri.contains("?") ? "&" : "?"
+                if let url = URL(string: uri + separator + "t=\(elapsed)s") { return url }
+            }
+            return URL(string: uri)
+        }
+        guard let encoded = media.trackTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        switch media.appBundleID {
+        case "com.spotify.client":
+            return URL(string: "spotify:search:\(encoded)")
+        case "com.apple.podcasts":
+            let encodedArtist = media.artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? encoded
+            return URL(string: "https://podcasts.apple.com/search?term=\(encodedArtist)")
+        case "com.apple.Music":
+            return URL(string: "https://music.apple.com/search?term=\(encoded)")
+        case "com.google.ios.youtube":
+            let encodedArtist = media.artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            return URL(string: "https://www.youtube.com/results?search_query=\(encodedArtist)")
+        default:
+            return URL(string: "https://music.apple.com/search?term=\(encoded)")
+        }
+    }
+
     private func artistDeepLink(name: String, appBundleID: String) -> URL? {
         guard let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
         switch appBundleID {
@@ -346,7 +390,7 @@ struct EmptyHistoryView: View {
                 .foregroundStyle(.secondary)
             Text("No sessions yet")
                 .font(.headline)
-            Text("Drift will record your first session tonight. Make sure media is playing when you get into bed.")
+            Text("Drift will record your first Drift tonight. Make sure media is playing when you get into bed.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

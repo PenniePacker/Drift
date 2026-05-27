@@ -390,12 +390,14 @@ struct WeeklyWrapCard: View {
 struct CardHeader: View {
     var body: some View {
         HStack {
-            Text("Drift.")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-            + Text(".")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color(red: 0.486, green: 0.557, blue: 0.941))
+            HStack(spacing: 0) {
+                Text("Drift")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text(".")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.486, green: 0.557, blue: 0.941))
+            }
             Spacer()
             Text("🌙")
                 .font(.system(size: 20))

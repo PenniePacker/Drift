@@ -30,6 +30,11 @@ struct ArtistStatsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
 
+                    Text("Discover which artists and shows help you drift off fastest")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+
                     // Global best sleeper banner
                     if let best = bestSleeperTrack {
                         GlobalBestSleeperBanner(track: best)
@@ -96,7 +101,7 @@ struct GlobalBestSleeperBanner: View {
                     .fontWeight(.medium)
                     .foregroundStyle(.green)
                 Spacer()
-                Text("avg \(Int(track.averageOnsetMinutes))m onset")
+                Text("avg \(Int(track.averageOnsetMinutes))m to drift off")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -122,8 +127,8 @@ struct GlobalBestSleeperBanner: View {
             }
 
             HStack(spacing: 8) {
-                StatMini(label: "Sessions", value: "\(track.confirmedSessionCount)×")
-                StatMini(label: "Avg onset", value: "\(Int(track.averageOnsetMinutes))m")
+                StatMini(label: "Drifts", value: "\(track.confirmedSessionCount)×")
+                StatMini(label: "avg to drift off", value: "\(Int(track.averageOnsetMinutes))m")
                 StatMini(label: "Fastest", value: "\(Int(track.fastestOnsetMinutes))m")
             }
 
@@ -193,7 +198,7 @@ struct ArtistRow: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                     .foregroundStyle(.primary)
-                Text("\(artist.appDisplayName) · \(artist.confirmedSessionCount) sessions")
+                Text("\(artist.appDisplayName) · \(artist.confirmedSessionCount) \(artist.confirmedSessionCount == 1 ? "Drift" : "Drifts")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -239,7 +244,7 @@ struct LockedArtistCard: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
-                    Text("\(artist.confirmedSessionCount) of 3 sessions needed")
+                    Text("\(artist.confirmedSessionCount) of 3 Drifts needed")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -251,7 +256,7 @@ struct LockedArtistCard: View {
 
             VStack(spacing: 6) {
                 HStack {
-                    Text("Sessions confirmed")
+                    Text("Drifts confirmed")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -327,8 +332,8 @@ struct ArtistDrillDownView: View {
 
                 // Stat trio
                 HStack(spacing: 10) {
-                    StatCard(label: "Sessions", value: "\(artist.confirmedSessionCount)", icon: "moon.zzz.fill")
-                    StatCard(label: "Avg onset", value: "\(Int(artist.averageOnsetMinutes))m", icon: "timer")
+                    StatCard(label: "Drifts", value: "\(artist.confirmedSessionCount)", icon: "moon.zzz.fill")
+                    StatCard(label: "avg to drift off", value: "\(Int(artist.averageOnsetMinutes))m", icon: "timer")
                     StatCard(label: "Best", value: "\(Int(artist.fastestOnsetMinutes))m", icon: "bolt.fill")
                 }
                 .padding(.horizontal)
@@ -342,7 +347,7 @@ struct ArtistDrillDownView: View {
                 // Track list
                 if !sortedTracks.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
-                        SectionHeader(title: "Episodes · fastest onset first")
+                        SectionHeader(title: "What puts you to sleep fastest")
                             .padding(.horizontal)
 
                         ForEach(Array(sortedTracks.enumerated()), id: \.element.id) { index, track in
@@ -379,7 +384,7 @@ struct ArtistBestSleeperCard: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .lineLimit(1)
-            Text("Avg \(Int(track.averageOnsetMinutes))m onset · put you to sleep \(track.confirmedSessionCount) times")
+            Text("avg \(Int(track.averageOnsetMinutes))m to drift off · \(track.confirmedSessionCount) \(track.confirmedSessionCount == 1 ? "Drift" : "Drifts")")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -450,7 +455,7 @@ struct TrackEntryRow: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(1)
-                    Text("Fell asleep \(track.averageElapsedSeconds.map { formatSeconds($0) + " in" } ?? "—") · \(track.confirmedSessionCount) times")
+                    Text("Drifted off \(track.averageElapsedSeconds.map { roughTime($0) } ?? "—") · \(track.confirmedSessionCount) \(track.confirmedSessionCount == 1 ? "Drift" : "Drifts")")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -462,7 +467,7 @@ struct TrackEntryRow: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(isBest ? .green : .primary)
-                    Text("avg onset")
+                    Text("avg to drift off")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -477,7 +482,7 @@ struct TrackEntryRow: View {
                 }
                 .frame(height: 3)
 
-                Text("\(track.confirmedSessionCount) sleep\(track.confirmedSessionCount == 1 ? "" : "s")")
+                Text("\(track.confirmedSessionCount) \(track.confirmedSessionCount == 1 ? "Drift" : "Drifts")")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 40, alignment: .trailing)
@@ -496,13 +501,14 @@ struct TrackEntryRow: View {
         .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
     }
 
-    private func formatSeconds(_ s: Double) -> String {
+    private func roughTime(_ s: Double) -> String {
         let total = Int(s)
         let h = total / 3600
         let m = (total % 3600) / 60
         let sec = total % 60
-        if h > 0 { return String(format: "%dh %02dm %02ds", h, m, sec) }
-        return String(format: "%dm %02ds", m, sec)
+        if h > 0 { return "around \(h)h \(m)m in" }
+        if m >= 10 { return "around \(m)m in" }
+        return "around \(m)m \(sec)s in"
     }
 }
 
@@ -516,7 +522,7 @@ struct EmptyArtistsView: View {
                 .foregroundStyle(.secondary)
             Text("No artists yet")
                 .font(.headline)
-            Text("Artists appear after Drift records sessions. You need 3 confirmed sessions per artist to unlock their stats.")
+            Text("Artists appear after Drift records Drifts. You need 3 confirmed Drifts per artist to unlock their stats.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
